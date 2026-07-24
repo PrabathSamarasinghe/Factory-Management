@@ -46,20 +46,25 @@ const getBoughtLeafDataBySupplier = (req, res) => {
         return res.status(400).json({ error: 'Invalid supplierId format' });
     }
 
-    const queryConfig = boughtLeafRepo.getBoughtLeafDataBySupplier(supplierId);
-    
-    pool.query(queryConfig, (error, results) => {
-        if (error) {
-            console.error('Error executing query:', error);
-            return res.status(500).json({ error: 'Internal Server Error' });
-        }
+    try {
+        const queryConfig = boughtLeafRepo.getBoughtLeafDataBySupplier(supplierId);
+        
+        pool.query(queryConfig, (error, results) => {
+            if (error) {
+                console.error('Error executing query:', error);
+                return res.status(500).json({ error: 'Internal Server Error' });
+            }
 
-        if (!results.rows.length) {
-            return res.status(404).json({ error: 'Supplier not found' });
-        }
+            if (!results.rows.length) {
+                return res.status(404).json({ error: 'Supplier not found' });
+            }
 
-        return res.status(200).json(results.rows);
-    });
+            return res.status(200).json(results.rows);
+        });
+    } catch (err) {
+        console.error('Validation error:', err);
+        return res.status(400).json({ error: err.message });
+    }
 };
 
 const insertBoughtLeafData = (req, res) => {
@@ -70,15 +75,20 @@ const insertBoughtLeafData = (req, res) => {
         return res.status(400).json({ error: validationError });
     }
 
-    const queryConfig = boughtLeafRepo.insertBoughtLeafData(data);
-    
-    pool.query(queryConfig, (error) => {
-        if (error) {
-            console.error('Error executing query:', error);
-            return res.status(500).json({ error: 'Internal Server Error' });
-        }
-        return res.status(201).json({ message: 'Bought leaf data inserted successfully' });
-    });
+    try {
+        const queryConfig = boughtLeafRepo.insertBoughtLeafData(data);
+        
+        pool.query(queryConfig, (error) => {
+            if (error) {
+                console.error('Error executing query:', error);
+                return res.status(500).json({ error: 'Internal Server Error' });
+            }
+            return res.status(201).json({ message: 'Bought leaf data inserted successfully' });
+        });
+    } catch (err) {
+        console.error('Validation error:', err);
+        return res.status(400).json({ error: err.message });
+    }
 };
 
 

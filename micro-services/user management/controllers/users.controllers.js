@@ -277,6 +277,39 @@ const updateEmployee = async (req, res) => {
   }
 };
 
+const getUsersByType = async (req, res) => {
+  try {
+    const queryConfig = usersRepo.getUsersByType();
+    pool.query(queryConfig, (error, results) => {
+      if (error) {
+        console.error('Error executing query:', error);
+        return res.status(500).json({ error: 'Internal Server Error' });
+      }
+
+      // Group the rows dynamically by their entity_type
+      const categorizedData = results.rows.reduce((acc, row) => {
+        const type = row.entity_type; // 'driver', 'helper', 'lorry', 'route'
+        
+        // Push the item into its matching array group
+        if (acc[type]) {
+          acc[type].push({
+            id: row.cid,
+            label: row.label
+          });
+        }
+        return acc;
+      }, { driver: [], helper: [], lorry: [], route: [] }); // Initializes empty arrays
+
+      // Send the separated object arrays back to your frontend
+      return res.json(categorizedData);
+    });
+  }
+  catch (err) {
+    console.error('Error:', err);
+    return res.status(500).json({ error: 'Internal Server Error' });
+  }
+}
+
 module.exports = { 
   getAllUsers, 
   createSupplier,
@@ -286,5 +319,6 @@ module.exports = {
   getBankDetailsByUserId,
   createBankDetails,
   updateSupplier,
-  updateEmployee
+  updateEmployee,
+  getUsersByType
 };

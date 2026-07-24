@@ -12,6 +12,7 @@ router.post('/supplier', authenticateToken, usersController.createSupplier);
 
 // POST: Create a new employee
 router.post('/employee', authenticateToken, usersController.createEmployee);
+router.get('/all/types', authenticateToken, usersController.getUsersByType);
 
 // GET: Retrieve user details by ID
 router.get('/employee/:employee_id', authenticateToken, usersController.getEmployeeById);
