@@ -1,4 +1,4 @@
-const travelRepo = require("../repository/travel.repo");
+const travelRepo = require("../repository/trip.repo");
 const pool = require("../config/db");
 
 // Validation functions

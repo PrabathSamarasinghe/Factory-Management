@@ -7,7 +7,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 
 const usersRoutes = require('./routes/users.routes');
-const travelRoutes = require('./routes/travel.routes');
+const travelRoutes = require('./routes/trip.routes');
 
 const app = express();
 

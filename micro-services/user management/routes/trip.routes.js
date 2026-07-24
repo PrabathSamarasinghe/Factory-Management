@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 
 const { authenticateToken } = require('../middleware/auth');
-const travelController = require('../controllers/travel.controllers');
+const travelController = require('../controllers/trip.controllers');
 
 router.get('/lorry', authenticateToken, travelController.getAllLorries);
 router.post('/lorry', authenticateToken, travelController.createLorry);
