@@ -8,6 +8,7 @@ const helmet = require('helmet');
 
 const usersRoutes = require('./routes/users.routes');
 const travelRoutes = require('./routes/trip.routes');
+const loginRoutes = require('./routes/login.routes');
 
 const app = express();
 
@@ -16,12 +17,15 @@ app.use(express.json());
 app.use(cors());
 
 
-app.get('/', (req, res) => {
+
+app.get('/health', (req, res) => {
     res.send('User Management microservice is running');
 });
 
-app.use('/users', usersRoutes);
+app.use('/', usersRoutes);
+app.use('/login', loginRoutes);
 app.use('/travel', travelRoutes);
+
 
 app.listen(process.env.PORT, () => {
     console.log(`User Management microservice is running on port ${process.env.PORT}`);

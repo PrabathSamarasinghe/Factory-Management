@@ -48,11 +48,11 @@ wss.on('connection', (ws) => {
   });
 });
 
-app.get('/', (req, res) => {
+app.get('/health', (req, res) => {
   res.send('Bought Leaf microservice is running');
 });
 
-app.use('/bought-leaf', boughtLeafRoutes);
+app.use('/', boughtLeafRoutes);
 
 // 6. CHANGE app.listen TO server.listen
 server.listen(process.env.PORT, () => {
