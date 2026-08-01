@@ -18,8 +18,6 @@ const app = express();
 app.use(cors());
 app.use(helmet());
 app.use(morgan("dev"));
-app.use(express.json());
-
 /*
     Public routes
 */
@@ -34,6 +32,8 @@ app.use("/api/attendance", authenticateToken, attendanceProxy);
 
 app.use("/api/bought-leaf", authenticateToken, boughtLeafProxy);
 
+
+app.use(express.json());
 /*
     Health check
 */

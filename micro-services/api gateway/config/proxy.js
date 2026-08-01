@@ -1,20 +1,27 @@
 const { createProxyMiddleware } = require("http-proxy-middleware");
 
-const createServiceProxy = (target, path) => {
+const createServiceProxy = (target) => {
+    if (!target) {
+        throw new Error("Proxy target is not configured");
+    }
+
     return createProxyMiddleware({
         target,
         changeOrigin: true,
-
-        pathRewrite: {
-            [`^${path}`]: ""
-        },
+        xfwd: true,
+        timeout: 10000,
+        proxyTimeout: 10000,
 
         onError(err, req, res) {
             console.error(err);
 
-            res.status(500).json({
+            if (res.headersSent) {
+                return;
+            }
+
+            res.status(502).json({
                 success: false,
-                message: "Gateway Error"
+                message: "Gateway proxy error"
             });
         }
     });
