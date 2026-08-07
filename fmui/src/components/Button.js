@@ -1,6 +1,5 @@
-import type { ButtonProps } from "../utils/Interfaces";
 
-const Button = ({ name, onClick, divcss, btncss }: ButtonProps) => {
+const Button = ({ name, onClick, divcss, btncss }) => {
     return (
         <div className={`flex items-center justify-between ${divcss}`}>
             <button

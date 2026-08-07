@@ -1,7 +1,6 @@
-import type { TextInputProps } from "../utils/Interfaces";
 
 
-const TextInput = ({name, label, value, onChange, type = "text", divcss, labelcss, inputcss, placeholder }: TextInputProps) => {
+const TextInput = ({name, label, value, onChange, type = "text", divcss, labelcss, inputcss, placeholder }) => {
     return (
         <div className={`mb-4 ${divcss}`}>
             <label className={`block text-gray-700 text-sm font-bold mb-2 ${labelcss}`} htmlFor={name}>
@@ -13,7 +12,6 @@ const TextInput = ({name, label, value, onChange, type = "text", divcss, labelcs
                 name={name}
                 type={type}
                 value={value}
-                onClick={() => console.log("clicked")}
                 onChange={onChange}
                 placeholder={placeholder}
             />

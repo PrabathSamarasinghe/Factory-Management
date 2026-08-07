@@ -10,6 +10,9 @@ const locals = {
     ForgotPassword: "Forgot Password?",
     RememberMe: "Remember Me",
     Logout: "Logout",
+    LoginSuccess: "Login successful!",
+    LoginFailed: "Login failed. Please check your credentials.",
+    RegisterSuccess: "Registration successful! Please log in.",
 };
 
 export default locals;
