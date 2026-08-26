@@ -1,3 +1,51 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+.bw-grid.ag-theme-alpine {
+  --ag-background-color: #ffffff;
+  --ag-header-background-color: #959292;
+  --ag-header-foreground-color: #ffffff;
+  --ag-odd-row-background-color: #fafafa;
+  --ag-row-hover-color: #f0f0f0;
+  --ag-selected-row-background-color: #e5e5e5;
+  --ag-border-color: #d9d9d9;
+  --ag-row-border-color: #ececec;
+  --ag-foreground-color: #353535;
+  --ag-secondary-foreground-color: #4d4d4d;
+  --ag-font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif;
+  --ag-font-size: 13px;
+  --ag-cell-horizontal-padding: 16px;
+  --ag-borders: solid 1px;
+  --ag-row-height: 44px;
+  --ag-header-height: 44px;
+}
+
+.bw-grid.ag-theme-alpine .ag-header-cell-label {
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  font-size: 12px;
+}
+
+.bw-grid.ag-theme-alpine .ag-header-cell-resize::after {
+  background-color: rgba(255, 255, 255, 0.3);
+}
+
+.bw-grid.ag-theme-alpine .ag-cell {
+  border-right: none;
+}
+
+.bw-grid.ag-theme-alpine .ag-row:hover {
+  transition: background-color 0.15s ease;
+}
+
+.bw-grid.ag-theme-alpine .ag-paging-panel {
+  border-top: 1px solid var(--ag-border-color);
+  color: #4d4d4d;
+  font-size: 13px;
+}
+
+.bw-grid.ag-theme-alpine .ag-icon {
+  color: #4d4d4d;
+}
