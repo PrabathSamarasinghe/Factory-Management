@@ -15,14 +15,16 @@ const boughtLeafProxy = require("./routes/boughtLeafProxy");
 
 const app = express();
 
-app.use(cors(
-    origin => {
-        if (process.env.NODE_ENV === "production") {
-            return process.env.ALLOWED_ORIGIN.split(",").includes(origin);
-        }
-        return true;
-    }
-));
+app.use(cors({
+    origin: 'http://localhost:3000',
+}));
+//     // origin => {
+//     //     // if (process.env.NODE_ENV === "production") {
+//     //     //     return process.env.ALLOWED_ORIGIN.split(",").includes(origin);
+//     //     // }
+//     //     // return true;
+
+    // }
 app.use(helmet());
 app.use(morgan("dev"));
 /*

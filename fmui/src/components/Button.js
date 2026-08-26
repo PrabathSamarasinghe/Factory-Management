@@ -1,11 +1,12 @@
 
-const Button = ({ name, onClick, divcss, btncss }) => {
+const Button = ({ name, onClick, divcss, btncss, disabled }) => {
     return (
         <div className={`flex items-center justify-between ${divcss}`}>
             <button
-                className={`bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline ${btncss}`}
+                className={`w-full py-3 bg-slate-900 hover:bg-slate-800 text-white font-medium rounded-xl transition-all duration-200 shadow-sm shadow-slate-900/10 cursor-pointer ${btncss} ${disabled ? "bg-slate-300 opacity-50 cursor-not-allowed" : ""}`}
                 type="button"
                 onClick={onClick}
+                disabled={disabled}
             >
                 {name}
             </button>

@@ -1,4 +1,5 @@
 const locals = {
+    SigningIn: "Signing in...",
     SignIn: "Sign In",
     SignUp: "Sign Up",
     Username: "Username",

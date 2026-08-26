@@ -4,15 +4,20 @@ import TextInput from "../components/TextInput";
 import locals from "../utils/locals";
 
 import api from "../api/axios";
-import { toast } from "react-toastify";
+import { ToastContainer, toast } from "react-toastify";
+
+import { useNavigate } from "react-router-dom";
 
 
 const Login = () => {
+    const navigate = useNavigate();
 
     const [userInputs, setUserInputs] = useState({
         username: "",
         password: "",
     });
+
+    const [isLoading, setIsLoading] = useState(false);
 
     const handleInputChange = (e) => {
 
@@ -25,17 +30,19 @@ const Login = () => {
     };
 
     const handleLogin = async () => {
+        setIsLoading(true);
         try {
-            const response = await api.post("api/users/login", userInputs);
+            console.log(userInputs);
+
+            const response = await api.post("api/auth/login", userInputs);
 
             const { token } = response.data;
 
             sessionStorage.setItem("token", token);
 
-            toast.success(locals.LoginSuccess, {
-                position: "top-right",
-                autoClose: 5000,
-            });
+            if (response.status === 200) {
+                navigate("/");
+            }
 
         } catch (error) {
             console.error(error);
@@ -44,17 +51,26 @@ const Login = () => {
                 position: "top-right",
                 autoClose: 5000,
             });
+        } finally {
+            setIsLoading(false);
         }
     };
 
     return (
-        <div className="flex items-center justify-center h-screen bg-gray-100">
-            <div className="w-full max-w-md p-8 bg-white rounded shadow-md">
-                <h2 className="text-2xl font-bold mb-6 text-center">{locals.Login}</h2>
-                <form onSubmit={(e) => {
-                    e.preventDefault();
-                    handleLogin();
-                }}>
+        <div className="flex items-center justify-center min-h-screen bg-slate-50 font-comfortaa">
+            <div className="w-full max-w-md p-10 bg-white rounded-2xl shadow-xl shadow-slate-100 border border-slate-100/80">
+                {/* Modernized Heading styling */}
+                <h2 className="text-3xl font-extrabold mb-8 text-center text-slate-800 tracking-tight">
+                    {locals.Login}
+                </h2>
+
+                <form
+                    onSubmit={(e) => {
+                        e.preventDefault();
+                        handleLogin();
+                    }}
+                    className="space-y-5"
+                >
                     <TextInput
                         name="username"
                         label={locals.Username}
@@ -62,6 +78,7 @@ const Login = () => {
                         value={userInputs.username}
                         onChange={handleInputChange}
                     />
+
                     <TextInput
                         name="password"
                         label={locals.Password}
@@ -70,10 +87,16 @@ const Login = () => {
                         value={userInputs.password}
                         onChange={handleInputChange}
                     />
-                    <Button
-                        name={locals.SignIn}
-                        onClick={handleLogin}
-                    />
+
+                    <div className="pt-2">
+                        <Button
+                            name={isLoading ? locals.SigningIn : locals.SignIn}
+                            onClick={handleLogin}
+                            disabled={isLoading}
+                        />
+                    </div>
+
+                    <ToastContainer />
                 </form>
             </div>
         </div>
