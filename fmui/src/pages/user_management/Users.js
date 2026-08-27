@@ -3,6 +3,8 @@ import api from '../../api/axios';
 import { useParams } from 'react-router-dom';
 import AgGrid from '../../components/AgGrid';
 import { userTypeColumnDefs } from '../../utils/columnDefs';
+import { ToastContainer, toast } from 'react-toastify';
+import locals from '../../utils/locals';
 
 const Users = () => {
     const [users, setUsers] = useState([]);
@@ -20,6 +22,7 @@ const Users = () => {
                 setUsers(response.data);
             } catch (error) {
                 console.error('Error fetching users:', error);
+                toast.error(locals.FetchError);
             }
         };
 
@@ -30,7 +33,8 @@ const Users = () => {
     return (
         <div>
             <h1>{userType.charAt(0).toUpperCase() + userType.slice(1)} Users</h1>
-            <AgGrid rowData={users} columnDefProp={userTypeColumnDefs(userType)} />
+            <AgGrid rowData={users} columnDefProp={userTypeColumnDefs(userType)} view={true}/>
+            <ToastContainer />
         </div>
     );
 

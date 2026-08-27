@@ -4,18 +4,27 @@ import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import Login from './pages/Login';
 import Trip from './pages/trip/Trip';
 import Users from './pages/user_management/Users';
-import Home from './pages/Home';
+import Dashboard from './pages/Dashboard';
+
+import MainLayout from './layouts/MainLayout'; // Fixed typo in filename if needed
+import NotFound from './pages/NotFound';
 
 function App() {
   return (
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Home />} />
+    <BrowserRouter>
+      <Routes>
+        {/* Public Routes (No Layout) */}
+        <Route path="/login" element={<Login />} />
+
+        {/* Protected/Dashboard Routes (With Layout) */}
+        <Route element={<MainLayout />}>
+          <Route path="/" element={<Dashboard />} />
           <Route path="/trip" element={<Trip />} />
-          <Route path="/login" element={<Login />} />
           <Route path="/users/:userType" element={<Users />} />
-        </Routes>
-      </BrowserRouter>
+          <Route path="*" element={<NotFound />} />
+        </Route>
+      </Routes>
+    </BrowserRouter>
   );
 }
 

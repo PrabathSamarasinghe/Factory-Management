@@ -7,3 +7,5 @@ export const userTypeColumnDefs = (userType) => {
     }
 };
 
+export const tripColumns = ["id", "date", "lorry_id", "route_id", "driver_id", "helper_id", "start_mileage", "end_mileage"];
+

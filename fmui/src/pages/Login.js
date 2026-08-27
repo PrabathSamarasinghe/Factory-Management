@@ -57,7 +57,7 @@ const Login = () => {
     };
 
     return (
-        <div className="flex items-center justify-center min-h-screen bg-slate-50 font-comfortaa">
+        <div className="flex items-center justify-center min-h-screen bg-slate-50">
             <div className="w-full max-w-md p-10 bg-white rounded-2xl shadow-xl shadow-slate-100 border border-slate-100/80">
                 {/* Modernized Heading styling */}
                 <h2 className="text-3xl font-extrabold mb-8 text-center text-slate-800 tracking-tight">
