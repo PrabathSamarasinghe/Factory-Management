@@ -8,6 +8,7 @@ import Dashboard from './pages/Dashboard';
 
 import MainLayout from './layouts/MainLayout'; // Fixed typo in filename if needed
 import NotFound from './pages/NotFound';
+import CreateTrip from './pages/trip/CreateTrip';
 
 function App() {
   return (
@@ -20,6 +21,7 @@ function App() {
         <Route element={<MainLayout />}>
           <Route path="/" element={<Dashboard />} />
           <Route path="/trip" element={<Trip />} />
+          <Route path="/trip/create" element={<CreateTrip />} />
           <Route path="/users/:userType" element={<Users />} />
           <Route path="*" element={<NotFound />} />
         </Route>

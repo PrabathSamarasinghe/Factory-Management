@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import Button from '../Button';
 import locals from '../../utils/locals';
+import { Link } from 'react-router-dom';
 
 // 1. Create a self-contained component for items with dropdowns
 const SidebarDropdown = ({ item }) => {
@@ -30,10 +31,10 @@ const SidebarDropdown = ({ item }) => {
             {isOpen && (
                 <div className="bg-slate-700/50 py-1 flex flex-col">
                     {item.subItems.map((subItem, subIndex) => (
-                        <a key={subIndex} href={subItem.path} className="flex items-center px-4 py-2 hover:text-white pl-8 transition-colors">
+                        <Link key={subIndex} to={subItem.path} className="flex items-center px-4 py-2 hover:text-white pl-8 transition-colors">
                             <span className="w-1.5 h-1.5 border-2 border-slate-500 rounded-full mr-3"></span>
                             {subItem.title}
-                        </a>
+                        </Link>
                     ))}
                 </div>
             )}
@@ -57,10 +58,10 @@ const Sidebar = ({ sidebarItems }) => {
                         // Dynamically instantiates state only for items with sub-items
                         <SidebarDropdown key={index} item={item} />
                     ) : (
-                        <a key={index} href={item.path} className="flex items-center px-4 py-3 hover:bg-slate-700 hover:text-white transition-colors">
+                        <Link key={index} to={item.path} className="flex items-center px-4 py-3 hover:bg-slate-700 hover:text-white transition-colors">
                             {item.icon}
                             {item.title}
-                        </a>
+                        </Link>
                     )
                 ))}
 

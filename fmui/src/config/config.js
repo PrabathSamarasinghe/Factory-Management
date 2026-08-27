@@ -22,7 +22,7 @@ const sidebarItems = [
                 path: '/trip',
             },
             {
-                title: 'Create Trip',
+                title: 'Schedule Trip',
                 path: '/trip/create',
             }
         ]
