@@ -1,20 +1,70 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-*{
+
+* {
   font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif, "comfortaa";
 }
+
+/* Custom Sleek Dark Sidebar Scrollbar */
+.sidebar-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.2) transparent;
+}
+
+.sidebar-scrollbar::-webkit-scrollbar {
+  width: 5px;
+}
+
+.sidebar-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sidebar-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.2);
+  border-radius: 9999px;
+  transition: background-color 0.2s ease;
+}
+
+.sidebar-scrollbar:hover::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.45);
+}
+
+.sidebar-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(239, 68, 68, 0.7);
+}
+
+/* Custom Global Body Scrollbar */
+::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* AG Grid Theme Alpine Customization */
 .bw-grid.ag-theme-alpine {
   --ag-background-color: #ffffff;
-  --ag-header-background-color: #959292;
-  --ag-header-foreground-color: #ffffff;
+  --ag-header-background-color: #0f172a;
+  --ag-header-foreground-color: #f8fafc;
   --ag-odd-row-background-color: #fafafa;
-  --ag-row-hover-color: #f0f0f0;
-  --ag-selected-row-background-color: #e5e5e5;
-  --ag-border-color: #d9d9d9;
-  --ag-row-border-color: #ececec;
-  --ag-foreground-color: #353535;
-  --ag-secondary-foreground-color: #4d4d4d;
+  --ag-row-hover-color: #f1f5f9;
+  --ag-selected-row-background-color: #e2e8f0;
+  --ag-border-color: #e2e8f0;
+  --ag-row-border-color: #f1f5f9;
+  --ag-foreground-color: #1e293b;
+  --ag-secondary-foreground-color: #64748b;
   --ag-font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif;
   --ag-font-size: 13px;
   --ag-cell-horizontal-padding: 16px;
@@ -24,14 +74,14 @@
 }
 
 .bw-grid.ag-theme-alpine .ag-header-cell-label {
-  font-weight: 600;
-  letter-spacing: 0.02em;
+  font-weight: 700;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
-  font-size: 12px;
+  font-size: 11px;
 }
 
 .bw-grid.ag-theme-alpine .ag-header-cell-resize::after {
-  background-color: rgba(255, 255, 255, 0.3);
+  background-color: rgba(255, 255, 255, 0.2);
 }
 
 .bw-grid.ag-theme-alpine .ag-cell {
@@ -44,10 +94,11 @@
 
 .bw-grid.ag-theme-alpine .ag-paging-panel {
   border-top: 1px solid var(--ag-border-color);
-  color: #4d4d4d;
-  font-size: 13px;
+  color: #475569;
+  font-size: 12px;
+  font-weight: 500;
 }
 
 .bw-grid.ag-theme-alpine .ag-icon {
-  color: #4d4d4d;
+  color: #64748b;
 }
