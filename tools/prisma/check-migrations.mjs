@@ -5,6 +5,12 @@ import { createRequire } from 'node:module';
 import { basename, dirname, join, relative, resolve } from 'node:path';
 
 const root = resolve(getOption('--root') ?? process.cwd());
+if (typeof process.loadEnvFile === 'function') {
+  const rootEnv = join(root, '.env');
+  if (existsSync(rootEnv)) {
+    process.loadEnvFile(rootEnv);
+  }
+}
 const schemaOption = getOption('--schema');
 const staticOnly = process.argv.includes('--static');
 const failures = [];
