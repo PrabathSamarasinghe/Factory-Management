@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.galatura.local/api/list-envelope.v1.json",
+  "title": "ListEnvelope",
+  "description": "Standard list response. The shape of `data` items is defined per endpoint.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["data", "page"],
+  "properties": {
+    "data": {
+      "type": "array",
+      "items": {}
+    },
+    "page": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["limit"],
+      "properties": {
+        "next": {
+          "type": ["string", "null"],
+          "description": "Opaque cursor for the next page; null when there is no next page."
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 200
+        },
+        "total": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Optional; omit when expensive to compute."
+        }
+      }
+    }
+  }
+}

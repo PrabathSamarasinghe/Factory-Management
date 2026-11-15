@@ -1,0 +1,13 @@
+plan.md
+docs/
+
+node_modules/
+dist/
+coverage/
+.turbo/
+*.tsbuildinfo
+*.log
+.env
+.env.*
+!.env.example
+.npmrc

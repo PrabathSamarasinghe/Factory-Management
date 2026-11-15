@@ -1,0 +1,69 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.galatura.local/events/event-envelope.v1.json",
+  "title": "EventEnvelope",
+  "description": "Fixed envelope for every domain event. Event-specific files describe only the `payload`.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "type", "version", "occurredAt", "actor", "payload"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Event id; consumers use it for inbox deduplication."
+    },
+    "type": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9]*(\\.[a-z][a-z0-9]*)+$",
+      "description": "domain.entity.pastTenseAction, e.g. collection.finalized or attendance.day.closed."
+    },
+    "version": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Payload schema major version."
+    },
+    "occurredAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "UTC timestamp when the event occurred (not when it was published)."
+    },
+    "producer": {
+      "type": "string",
+      "description": "Service that emitted the event, e.g. collection-service."
+    },
+    "actor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["USER", "SERVICE", "SYSTEM", "DEVICE"]
+        },
+        "id": {
+          "type": ["string", "null"],
+          "format": "uuid",
+          "description": "Principal id when known; null for SYSTEM."
+        }
+      }
+    },
+    "correlationId": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Ties together a business flow across services."
+    },
+    "causationId": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Id of the command or event that caused this event."
+    },
+    "traceId": {
+      "type": "string",
+      "description": "W3C trace id for observability (optional)."
+    },
+    "payload": {
+      "type": "object",
+      "description": "Event-specific payload defined by the registry schema."
+    }
+  }
+}

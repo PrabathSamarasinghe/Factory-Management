@@ -1,0 +1,14 @@
+{
+  "name": "@galatura/event-contracts",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Versioned domain event schemas, registry and compatibility policy.",
+  "files": [
+    "schemas",
+    "registry.json"
+  ],
+  "exports": {
+    "./schemas/*": "./schemas/*",
+    "./registry.json": "./registry.json"
+  }
+}

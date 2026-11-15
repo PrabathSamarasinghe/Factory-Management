@@ -1,0 +1,4 @@
+// GitHub Packages (private registry) example.
+// Copy to .npmrc for local use and never commit real tokens.
+@galatura:registry=https://npm.pkg.github.com
+//npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}

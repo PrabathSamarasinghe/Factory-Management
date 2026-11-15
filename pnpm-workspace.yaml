@@ -1,0 +1,8 @@
+packages:
+  - packages/*
+  - services/*
+  - apps/mobile-*
+
+allowBuilds:
+  '@prisma/engines': true
+  prisma: true

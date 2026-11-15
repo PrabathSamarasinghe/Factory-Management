@@ -1,0 +1,70 @@
+{
+  "name": "@galatura/platform-kit",
+  "version": "0.1.0",
+  "description": "Shared security and platform primitives for the Galatura factory services.",
+  "license": "UNLICENSED",
+  "private": false,
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "require": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./keys": {
+      "types": "./dist/keys/index.d.ts",
+      "require": "./dist/keys/index.js",
+      "default": "./dist/keys/index.js"
+    },
+    "./storage": {
+      "types": "./dist/storage/index.d.ts",
+      "require": "./dist/storage/index.js",
+      "default": "./dist/storage/index.js"
+    },
+    "./prisma": {
+      "types": "./dist/prisma/index.d.ts",
+      "require": "./dist/prisma/index.js",
+      "default": "./dist/prisma/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com",
+    "access": "restricted"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "prepublishOnly": "pnpm build && pnpm test"
+  },
+  "dependencies": {
+    "@node-rs/argon2": "^2.2.2",
+    "jsonwebtoken": "^9.0.3"
+  },
+  "peerDependencies": {
+    "@nestjs/common": "^11.0.0",
+    "reflect-metadata": "^0.2.0",
+    "rxjs": "^7.8.0"
+  },
+  "devDependencies": {
+    "@nestjs/common": "11.2.10",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/node": "^26.6.6",
+    "ajv": "^8.20.0",
+    "ajv-formats": "^3.0.1",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.2",
+    "typescript": "^7.0.2",
+    "vitest": "^5.1.0"
+  }
+}

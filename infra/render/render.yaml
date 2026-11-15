@@ -1,0 +1,175 @@
+# Render Blueprint for Galatura Factory Management.
+#
+# One project with three isolated environments. Every resource name is prefixed
+# with the environment because Render resource names are workspace-wide.
+#
+# Paid plans only: free Render services sleep, which breaks realtime and sync.
+# App services are added in Phase 1; see README.md for the service template and
+# the post-provisioning steps for the shared core database.
+#
+# Blueprint path: infra/render/render.yaml (set during Blueprint setup).
+# Requires a Pro workspace for three project environments; Hobby allows two.
+
+projects:
+  - name: galatura
+    environments:
+      - name: dev
+        networking:
+          isolation: enabled
+        databases:
+          - name: galatura-dev-core-db
+            databaseName: galatura_core
+            user: core_owner
+            plan: 0.5c-1g
+            region: singapore
+            postgresMajorVersion: '18'
+            ipAllowList: []
+          - name: galatura-dev-identity-db
+            databaseName: galatura_identity
+            user: identity_service
+            plan: 0.5c-1g
+            region: singapore
+            postgresMajorVersion: '18'
+            ipAllowList: []
+          - name: galatura-dev-accounts-db
+            databaseName: galatura_accounts
+            user: accounts_service
+            plan: 0.5c-1g
+            region: singapore
+            postgresMajorVersion: '18'
+            ipAllowList: []
+        services:
+          - type: keyvalue
+            name: galatura-dev-redis
+            plan: 256mb
+            region: singapore
+            ipAllowList: []
+            maxmemoryPolicy: noeviction
+            persistenceMode: journal-snapshot
+        envVarGroups:
+          - name: galatura-dev-config
+            envVars:
+              - key: APP_ENV
+                value: dev
+              - key: NODE_ENV
+                value: production
+              - key: LOG_LEVEL
+                value: debug
+              - key: OTEL_RESOURCE_ATTRIBUTES
+                value: deployment.environment=dev,service.namespace=galatura
+          - name: galatura-dev-platform-secrets
+            envVars:
+              - key: PLATFORM_MASTER_KEY
+                generateValue: true
+              - key: PLATFORM_MASTER_KEY_ID
+                value: render-dev-1
+              - key: PLATFORM_BLIND_INDEX_KEY
+                generateValue: true
+
+      - name: staging
+        networking:
+          isolation: enabled
+        databases:
+          - name: galatura-staging-core-db
+            databaseName: galatura_core
+            user: core_owner
+            plan: 0.5c-1g
+            region: singapore
+            postgresMajorVersion: '18'
+            ipAllowList: []
+          - name: galatura-staging-identity-db
+            databaseName: galatura_identity
+            user: identity_service
+            plan: 0.5c-1g
+            region: singapore
+            postgresMajorVersion: '18'
+            ipAllowList: []
+          - name: galatura-staging-accounts-db
+            databaseName: galatura_accounts
+            user: accounts_service
+            plan: 0.5c-1g
+            region: singapore
+            postgresMajorVersion: '18'
+            ipAllowList: []
+        services:
+          - type: keyvalue
+            name: galatura-staging-redis
+            plan: 256mb
+            region: singapore
+            ipAllowList: []
+            maxmemoryPolicy: noeviction
+            persistenceMode: journal-snapshot
+        envVarGroups:
+          - name: galatura-staging-config
+            envVars:
+              - key: APP_ENV
+                value: staging
+              - key: NODE_ENV
+                value: production
+              - key: LOG_LEVEL
+                value: info
+              - key: OTEL_RESOURCE_ATTRIBUTES
+                value: deployment.environment=staging,service.namespace=galatura
+          - name: galatura-staging-platform-secrets
+            envVars:
+              - key: PLATFORM_MASTER_KEY
+                generateValue: true
+              - key: PLATFORM_MASTER_KEY_ID
+                value: render-staging-1
+              - key: PLATFORM_BLIND_INDEX_KEY
+                generateValue: true
+
+      - name: prod
+        networking:
+          isolation: enabled
+        permissions:
+          protection: enabled
+        databases:
+          - name: galatura-prod-core-db
+            databaseName: galatura_core
+            user: core_owner
+            plan: 1c-2g
+            region: singapore
+            postgresMajorVersion: '18'
+            ipAllowList: []
+          - name: galatura-prod-identity-db
+            databaseName: galatura_identity
+            user: identity_service
+            plan: 1c-2g
+            region: singapore
+            postgresMajorVersion: '18'
+            ipAllowList: []
+          - name: galatura-prod-accounts-db
+            databaseName: galatura_accounts
+            user: accounts_service
+            plan: 1c-2g
+            region: singapore
+            postgresMajorVersion: '18'
+            ipAllowList: []
+        services:
+          - type: keyvalue
+            name: galatura-prod-redis
+            plan: 1g
+            region: singapore
+            ipAllowList: []
+            maxmemoryPolicy: noeviction
+            persistenceMode: journal-snapshot
+        envVarGroups:
+          - name: galatura-prod-config
+            envVars:
+              - key: APP_ENV
+                value: prod
+              - key: NODE_ENV
+                value: production
+              - key: LOG_LEVEL
+                value: info
+              - key: OTEL_RESOURCE_ATTRIBUTES
+                value: deployment.environment=prod,service.namespace=galatura
+          - name: galatura-prod-platform-secrets
+            envVars:
+              - key: PLATFORM_MASTER_KEY
+                generateValue: true
+              - key: PLATFORM_MASTER_KEY_ID
+                value: render-prod-1
+              - key: PLATFORM_BLIND_INDEX_KEY
+                generateValue: true

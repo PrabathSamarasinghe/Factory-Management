@@ -1,0 +1,138 @@
+{
+  "version": 1,
+  "description": "Stable API error codes. Services add new codes here first; clients treat unknown codes generically.",
+  "codes": [
+    {
+      "code": "BAD_REQUEST",
+      "httpStatus": 400,
+      "retryable": false,
+      "description": "Malformed request that is not a validation failure."
+    },
+    {
+      "code": "UNAUTHENTICATED",
+      "httpStatus": 401,
+      "retryable": false,
+      "description": "Missing or invalid credentials."
+    },
+    {
+      "code": "INVALID_TOKEN",
+      "httpStatus": 401,
+      "retryable": false,
+      "description": "Expired, revoked or forged token."
+    },
+    {
+      "code": "FORBIDDEN",
+      "httpStatus": 403,
+      "retryable": false,
+      "description": "Authenticated but not permitted."
+    },
+    {
+      "code": "NOT_FOUND",
+      "httpStatus": 404,
+      "retryable": false,
+      "description": "Resource does not exist or is not visible in scope."
+    },
+    {
+      "code": "CONFLICT",
+      "httpStatus": 409,
+      "retryable": false,
+      "description": "Request conflicts with current state."
+    },
+    {
+      "code": "VERSION_CONFLICT",
+      "httpStatus": 409,
+      "retryable": false,
+      "description": "Optimistic-lock version mismatch."
+    },
+    {
+      "code": "IDEMPOTENCY_KEY_REUSED",
+      "httpStatus": 409,
+      "retryable": false,
+      "description": "Idempotency-Key reused with a different request body."
+    },
+    {
+      "code": "PRECONDITION_FAILED",
+      "httpStatus": 412,
+      "retryable": false,
+      "description": "If-Match/ETag precondition failed."
+    },
+    {
+      "code": "PAYLOAD_TOO_LARGE",
+      "httpStatus": 413,
+      "retryable": false,
+      "description": "Body or upload exceeds the size limit."
+    },
+    {
+      "code": "UNSUPPORTED_MEDIA_TYPE",
+      "httpStatus": 415,
+      "retryable": false,
+      "description": "Content type is not supported."
+    },
+    {
+      "code": "VALIDATION_FAILED",
+      "httpStatus": 422,
+      "retryable": false,
+      "description": "Input failed schema or business validation; see details[].field."
+    },
+    {
+      "code": "BUSINESS_RULE_VIOLATION",
+      "httpStatus": 422,
+      "retryable": false,
+      "description": "A domain rule rejected the command."
+    },
+    {
+      "code": "PERIOD_LOCKED",
+      "httpStatus": 409,
+      "retryable": false,
+      "description": "Fiscal period is locked; no further postings."
+    },
+    {
+      "code": "UNBALANCED_ENTRY",
+      "httpStatus": 422,
+      "retryable": false,
+      "description": "Journal debits do not equal credits."
+    },
+    {
+      "code": "TRIP_NOT_ENDABLE",
+      "httpStatus": 409,
+      "retryable": false,
+      "description": "Trip cannot end until all pickups are weighed and totals finalised."
+    },
+    {
+      "code": "RATE_LIMITED",
+      "httpStatus": 429,
+      "retryable": true,
+      "description": "Too many requests; honour Retry-After."
+    },
+    {
+      "code": "INTERNAL_ERROR",
+      "httpStatus": 500,
+      "retryable": true,
+      "description": "Unexpected server error; use requestId when reporting."
+    },
+    {
+      "code": "NOT_IMPLEMENTED",
+      "httpStatus": 501,
+      "retryable": false,
+      "description": "Feature not available."
+    },
+    {
+      "code": "DEPENDENCY_UNAVAILABLE",
+      "httpStatus": 503,
+      "retryable": true,
+      "description": "A required dependency is unavailable; retry with backoff."
+    },
+    {
+      "code": "SERVICE_UNAVAILABLE",
+      "httpStatus": 503,
+      "retryable": true,
+      "description": "Service is not ready; retry with backoff."
+    },
+    {
+      "code": "UPSTREAM_TIMEOUT",
+      "httpStatus": 504,
+      "retryable": true,
+      "description": "An upstream call timed out."
+    }
+  ]
+}

@@ -1,0 +1,34 @@
+{
+  "registryVersion": 1,
+  "envelope": "schemas/event-envelope.v1.json",
+  "policy": {
+    "compatibility": "backward",
+    "delivery": "at-least-once",
+    "consumersMustIgnoreUnknownFields": true,
+    "eventsCarryIdsNotSensitiveData": true
+  },
+  "events": [
+    {
+      "type": "collection.finalized",
+      "version": 1,
+      "status": "active",
+      "schema": "schemas/collection.finalized.v1.json",
+      "owner": "collection-service",
+      "producers": ["collection-service"],
+      "consumers": ["notification-service", "accounts-service", "reporting-service"],
+      "orderingKey": "supplierId",
+      "since": "2026-11-15"
+    },
+    {
+      "type": "trip.started",
+      "version": 1,
+      "status": "active",
+      "schema": "schemas/trip.started.v1.json",
+      "owner": "fleet-service",
+      "producers": ["fleet-service"],
+      "consumers": ["reporting-service", "realtime-service"],
+      "orderingKey": "tripId",
+      "since": "2026-11-15"
+    }
+  ]
+}

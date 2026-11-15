@@ -1,0 +1,12 @@
+{
+  "name": "@galatura/contracts",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Versioned API contract schemas (error and list envelopes, error codes).",
+  "files": [
+    "api"
+  ],
+  "exports": {
+    "./api/*": "./api/*"
+  }
+}

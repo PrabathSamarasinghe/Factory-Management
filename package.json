@@ -1,0 +1,27 @@
+{
+  "name": "galatura-factory-management",
+  "version": "0.0.0",
+  "private": true,
+  "packageManager": "pnpm@12.21.0",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "build": "turbo run build",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "lint": "turbo run lint",
+    "dev": "turbo run dev",
+    "clean": "turbo run clean",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "prisma:check": "node tools/prisma/check-migrations.mjs",
+    "prisma:check:static": "node tools/prisma/check-migrations.mjs --static"
+  },
+  "devDependencies": {
+    "prettier": "^3.10.1",
+    "prisma": "7.10.1",
+    "turbo": "^2.11.11",
+    "typescript": "^7.0.2"
+  }
+}
