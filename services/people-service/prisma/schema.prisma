@@ -1,0 +1,317 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  schemas  = ["people"]
+}
+
+enum PersonType {
+  EMPLOYEE
+  STAFF
+  SUPPLIER
+  ADMIN
+
+  @@schema("people")
+}
+
+enum PersonStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+  TERMINATED
+
+  @@schema("people")
+}
+
+enum WageType {
+  DAILY
+  MONTHLY
+  PER_KG
+  PIECE
+
+  @@schema("people")
+}
+
+enum StaffRole {
+  DRIVER
+  HELPER
+  TRIP_SUPERVISOR
+  CLERK
+
+  @@schema("people")
+}
+
+enum PaymentMethod {
+  BANK
+  CASH
+  CHEQUE
+
+  @@schema("people")
+}
+
+enum BankAccountStatus {
+  PENDING_VERIFY
+  VERIFIED
+  INACTIVE
+
+  @@schema("people")
+}
+
+enum DocumentType {
+  NIC_FRONT
+  NIC_BACK
+  LICENCE
+  CONTRACT
+  PHOTO
+
+  @@schema("people")
+}
+
+enum ConsentType {
+  BIOMETRIC
+  SMS
+  DATA_PROCESSING
+
+  @@schema("people")
+}
+
+model Person {
+  id              String       @id @default(uuid(7)) @db.Uuid
+  personType      PersonType   @map("person_type")
+  code            String       @unique @db.Text
+  fullName        String       @map("full_name") @db.Text
+  preferredName   String?      @map("preferred_name") @db.Text
+  gender          String?      @db.Text
+  dateOfBirth     DateTime?    @map("date_of_birth") @db.Date
+  nationalIdEnc   String?      @map("national_id_enc") @db.Text
+  nationalIdHash  String?      @map("national_id_hash") @db.Text
+  phonePrimary    String?      @map("phone_primary") @db.Text
+  phoneSecondary  String?      @map("phone_secondary") @db.Text
+  email           String?      @db.Text
+  addressLine1    String?      @map("address_line1") @db.Text
+  addressLine2    String?      @map("address_line2") @db.Text
+  city            String?      @db.Text
+  district        String?      @db.Text
+  postalCode      String?      @map("postal_code") @db.Text
+  photoObjectKey  String?      @map("photo_object_key") @db.Text
+  status          PersonStatus @default(ACTIVE)
+  userId          String?      @map("user_id") @db.Uuid
+  createdAt       DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime     @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt       DateTime?    @map("deleted_at") @db.Timestamptz(6)
+
+  employeeDetails   EmployeeDetails?
+  staffDetails      StaffDetails?
+  supplierDetails   SupplierDetails?
+  adminDetails      AdminDetails?
+  bankAccounts      BankAccount[]
+  emergencyContacts EmergencyContact[]
+  documents         PersonDocument[]
+  consents          Consent[]
+  changeLogs        PersonChangeLog[]
+
+  @@index([personType])
+  @@index([status])
+  @@index([nationalIdHash])
+  @@index([phonePrimary])
+  @@index([userId])
+  @@map("persons")
+  @@schema("people")
+}
+
+model EmployeeDetails {
+  personId           String    @id @map("person_id") @db.Uuid
+  department         String    @db.Text
+  designation        String    @db.Text
+  employmentType     String    @map("employment_type") @db.Text
+  joinDate           DateTime  @map("join_date") @db.Date
+  endDate            DateTime? @map("end_date") @db.Date
+  epfNo              String?   @map("epf_no") @db.Text
+  etfNo              String?   @map("etf_no") @db.Text
+  wageType           WageType  @map("wage_type")
+  baseRate           Decimal   @map("base_rate") @db.Decimal(12, 2)
+  shiftId            String?   @map("shift_id") @db.Uuid
+  supervisorPersonId String?   @map("supervisor_person_id") @db.Uuid
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  person Person @relation(fields: [personId], references: [id], onDelete: Cascade)
+
+  @@map("employee_details")
+  @@schema("people")
+}
+
+model StaffDetails {
+  personId           String    @id @map("person_id") @db.Uuid
+  staffRole          StaffRole @map("staff_role")
+  designation        String    @db.Text
+  joinDate           DateTime  @map("join_date") @db.Date
+  endDate            DateTime? @map("end_date") @db.Date
+  epfNo              String?   @map("epf_no") @db.Text
+  etfNo              String?   @map("etf_no") @db.Text
+  monthlySalary      Decimal   @map("monthly_salary") @db.Decimal(12, 2)
+  drivingLicenceNoEnc String?  @map("driving_licence_no_enc") @db.Text
+  licenceExpiry      DateTime? @map("licence_expiry") @db.Date
+  licenceClasses     String[]  @map("licence_classes")
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  person Person @relation(fields: [personId], references: [id], onDelete: Cascade)
+
+  @@map("staff_details")
+  @@schema("people")
+}
+
+model SupplierDetails {
+  personId                 String        @id @map("person_id") @db.Uuid
+  supplierRegNo            String        @unique @map("supplier_reg_no") @db.Text
+  supplierRegNoNormalized  String        @unique @map("supplier_reg_no_normalized") @db.Text
+  regYear                  Int           @map("reg_year") @db.SmallInt
+  regSeq                   Int           @map("reg_seq") @db.Integer
+  supplierCode             String        @unique @map("supplier_code") @db.Text
+  barcodeValue             String        @unique @map("barcode_value") @db.Text
+  businessName             String?       @map("business_name") @db.Text
+  businessRegNo            String?       @map("business_reg_no") @db.Text
+  landAreaAcres            Decimal?      @map("land_area_acres") @db.Decimal(8, 2)
+  estateName               String?       @map("estate_name") @db.Text
+  collectionPoint          String?       @map("collection_point") @db.Text
+  routeId                  String?       @map("route_id") @db.Uuid
+  gpsLat                   Decimal?      @map("gps_lat") @db.Decimal(9, 6)
+  gpsLng                   Decimal?      @map("gps_lng") @db.Decimal(9, 6)
+  teaVariety               String?       @map("tea_variety") @db.Text
+  paymentMethod            PaymentMethod @default(BANK) @map("payment_method")
+  smsOptIn                 Boolean       @default(true) @map("sms_opt_in")
+  smsPhone                 String?       @map("sms_phone") @db.Text
+  joinedOn                 DateTime      @default(now()) @map("joined_on") @db.Date
+  contractRef              String?       @map("contract_ref") @db.Text
+  createdAt                DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt                DateTime      @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  person Person @relation(fields: [personId], references: [id], onDelete: Cascade)
+
+  @@unique([regYear, regSeq])
+  @@index([routeId])
+  @@index([collectionPoint])
+  @@map("supplier_details")
+  @@schema("people")
+}
+
+model AdminDetails {
+  personId   String   @id @map("person_id") @db.Uuid
+  adminLevel String   @map("admin_level") @db.Text
+  department String?  @db.Text
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  person Person @relation(fields: [personId], references: [id], onDelete: Cascade)
+
+  @@map("admin_details")
+  @@schema("people")
+}
+
+model SupplierRegSequence {
+  year    Int @id @db.SmallInt
+  lastSeq Int @default(0) @map("last_seq") @db.Integer
+
+  @@map("supplier_reg_sequences")
+  @@schema("people")
+}
+
+model BankAccount {
+  id                String            @id @default(uuid(7)) @db.Uuid
+  personId          String            @map("person_id") @db.Uuid
+  bankName          String            @map("bank_name") @db.Text
+  bankCode          String?           @map("bank_code") @db.Text
+  branchName        String?           @map("branch_name") @db.Text
+  branchCode        String?           @map("branch_code") @db.Text
+  accountHolderName String            @map("account_holder_name") @db.Text
+  accountNumberEnc  String            @map("account_number_enc") @db.Text
+  accountNumberHash String            @map("account_number_hash") @db.Text
+  accountLast4      String            @map("account_last4") @db.Text
+  isPrimary         Boolean           @default(true) @map("is_primary")
+  status            BankAccountStatus @default(PENDING_VERIFY)
+  verifiedBy        String?           @map("verified_by") @db.Uuid
+  verifiedAt        DateTime?         @map("verified_at") @db.Timestamptz(6)
+  createdAt         DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime          @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  person Person @relation(fields: [personId], references: [id], onDelete: Cascade)
+
+  @@index([personId])
+  @@index([accountNumberHash])
+  @@map("bank_accounts")
+  @@schema("people")
+}
+
+model EmergencyContact {
+  id           String   @id @default(uuid(7)) @db.Uuid
+  personId     String   @map("person_id") @db.Uuid
+  name         String   @db.Text
+  relationship String   @db.Text
+  phone        String   @db.Text
+  address      String?  @db.Text
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  person Person @relation(fields: [personId], references: [id], onDelete: Cascade)
+
+  @@index([personId])
+  @@map("emergency_contacts")
+  @@schema("people")
+}
+
+model PersonDocument {
+  id         String       @id @default(uuid(7)) @db.Uuid
+  personId   String       @map("person_id") @db.Uuid
+  docType    DocumentType @map("doc_type")
+  objectKey  String       @map("object_key") @db.Text
+  mime       String       @db.Text
+  sizeBytes  Int          @map("size_bytes")
+  expiresOn  DateTime?    @map("expires_on") @db.Date
+  uploadedBy String?      @map("uploaded_by") @db.Uuid
+  createdAt  DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt  DateTime     @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  person Person @relation(fields: [personId], references: [id], onDelete: Cascade)
+
+  @@index([personId])
+  @@map("person_documents")
+  @@schema("people")
+}
+
+model Consent {
+  id                 String      @id @default(uuid(7)) @db.Uuid
+  personId           String      @map("person_id") @db.Uuid
+  consentType        ConsentType @map("consent_type")
+  granted            Boolean     @default(true)
+  grantedAt          DateTime    @default(now()) @map("granted_at") @db.Timestamptz(6)
+  revokedAt          DateTime?   @map("revoked_at") @db.Timestamptz(6)
+  evidenceObjectKey  String?     @map("evidence_object_key") @db.Text
+  createdAt          DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime    @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  person Person @relation(fields: [personId], references: [id], onDelete: Cascade)
+
+  @@unique([personId, consentType])
+  @@map("consents")
+  @@schema("people")
+}
+
+model PersonChangeLog {
+  id             String   @id @default(uuid(7)) @db.Uuid
+  personId       String   @map("person_id") @db.Uuid
+  field          String   @db.Text
+  oldValueMasked String?  @map("old_value_masked") @db.Text
+  newValueMasked String?  @map("new_value_masked") @db.Text
+  changedBy      String?  @map("changed_by") @db.Uuid
+  changedAt      DateTime @default(now()) @map("changed_at") @db.Timestamptz(6)
+
+  person Person @relation(fields: [personId], references: [id], onDelete: Cascade)
+
+  @@index([personId, changedAt])
+  @@map("person_change_log")
+  @@schema("people")
+}
