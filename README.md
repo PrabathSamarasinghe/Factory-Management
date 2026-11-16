@@ -12,7 +12,7 @@ scope decisions live in `docs/v1-scope.md`; database rules live in
 
 - Node.js 24 LTS (see `.nvmrc`)
 - pnpm 12.21.0 (`corepack enable` or `npm i -g pnpm@12.21.0`)
-- Python + uv for desktop apps (added in phase 11)
+- Python 3.11+ with pip or uv for desktop apps
 - Docker for local PostgreSQL and Redis (added in the infrastructure phase)
 
 ## Commands
@@ -56,6 +56,22 @@ tools/             codegen and shared scripts
 `pnpm-workspace.yaml`. `apps/mobile-*` and `services/*` become workspace
 packages when their scaffold is added; the empty directories reserve the agreed
 names.
+
+## Desktop apps (PySide6)
+
+`apps/desktop-core` holds the shared API client, auth/session, token storage,
+theme, and widgets. `apps/desktop-admin` is the C1 admin console. They are not
+part of the pnpm workspace.
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pip install -r apps/desktop-admin/requirements.txt
+galatura-admin
+```
+
+See `apps/desktop-core/README.md` and `apps/desktop-admin/README.md` for
+configuration, screens, and offline smoke-test instructions.
 
 ## Toolchain
 

@@ -11,6 +11,8 @@ import { DevicesService } from './devices/devices.service';
 import { DevicesController, MyDevicesController } from './devices/devices.controller';
 import { UsersService } from './users/users.service';
 import { UsersController } from './users/users.controller';
+import { AuditService } from './audit/audit.service';
+import { AuditController } from './audit/audit.controller';
 
 @Module({
   imports: [],
@@ -22,6 +24,7 @@ import { UsersController } from './users/users.controller';
     DevicesController,
     MyDevicesController,
     UsersController,
+    AuditController,
   ],
   providers: [
     PrismaService,
@@ -31,6 +34,7 @@ import { UsersController } from './users/users.controller';
     PermissionsService,
     DevicesService,
     UsersService,
+    AuditService,
   ],
   exports: [
     PrismaService,
@@ -40,6 +44,7 @@ import { UsersController } from './users/users.controller';
     PermissionsService,
     DevicesService,
     UsersService,
+    AuditService,
   ],
 })
 export class AppModule {}
