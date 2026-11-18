@@ -1,0 +1,284 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  schemas  = ["fleet"]
+}
+
+enum LorryStatus {
+  ACTIVE
+  MAINTENANCE
+  RETIRED
+
+  @@schema("fleet")
+}
+
+enum RouteStatus {
+  ACTIVE
+  INACTIVE
+
+  @@schema("fleet")
+}
+
+enum AssignmentStatus {
+  ACTIVE
+  ENDED
+
+  @@schema("fleet")
+}
+
+enum TripStatus {
+  PLANNED
+  IN_PROGRESS
+  AT_FACTORY
+  WEIGHING
+  COMPLETED
+  CANCELLED
+
+  @@schema("fleet")
+}
+
+enum TripEventType {
+  STOP_ARRIVED
+  STOP_SKIPPED
+  BREAKDOWN
+  NOTE
+
+  @@schema("fleet")
+}
+
+model Lorry {
+  id                   String      @id @default(uuid(7)) @db.Uuid
+  registrationNo       String      @unique @map("registration_no") @db.Text
+  make                 String      @db.Text
+  model                String      @db.Text
+  year                 Int?
+  chassisNo            String?     @map("chassis_no") @db.Text
+  engineNo             String?     @map("engine_no") @db.Text
+  fuelType             String?     @map("fuel_type") @db.Text
+  capacityKg           Decimal?    @map("capacity_kg") @db.Decimal(10, 2)
+  tareWeightKg         Decimal?    @map("tare_weight_kg") @db.Decimal(10, 2)
+  colour               String?     @db.Text
+  photoObjectKey       String?     @map("photo_object_key") @db.Text
+  insuranceExpiry      DateTime?   @map("insurance_expiry") @db.Date
+  revenueLicenceExpiry DateTime?   @map("revenue_licence_expiry") @db.Date
+  emissionTestExpiry   DateTime?   @map("emission_test_expiry") @db.Date
+  currentOdometerKm    Decimal     @default(0) @map("current_odometer_km") @db.Decimal(10, 1)
+  status               LorryStatus @default(ACTIVE)
+  version              Int         @default(0)
+  createdAt            DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt            DateTime    @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  documents       LorryDocument[]
+  maintenance     LorryMaintenance[]
+  assignments     RouteAssignment[]
+  trips           Trip[]
+
+  @@index([status])
+  @@map("lorries")
+  @@schema("fleet")
+}
+
+model LorryDocument {
+  id          String   @id @default(uuid(7)) @db.Uuid
+  lorryId     String   @map("lorry_id") @db.Uuid
+  docType     String   @map("doc_type") @db.Text
+  objectKey   String   @map("object_key") @db.Text
+  issuedOn    DateTime? @map("issued_on") @db.Date
+  expiresOn   DateTime? @map("expires_on") @db.Date
+  uploadedBy  String?  @map("uploaded_by") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  lorry Lorry @relation(fields: [lorryId], references: [id], onDelete: Cascade)
+
+  @@index([lorryId, expiresOn])
+  @@map("lorry_documents")
+  @@schema("fleet")
+}
+
+model LorryMaintenance {
+  id          String   @id @default(uuid(7)) @db.Uuid
+  lorryId     String   @map("lorry_id") @db.Uuid
+  serviceDate DateTime @map("service_date") @db.Date
+  odometerKm  Decimal  @map("odometer_km") @db.Decimal(10, 1)
+  description String   @db.Text
+  cost        Decimal? @db.Decimal(18, 2)
+  vendor      String?  @db.Text
+  nextDueKm   Decimal? @map("next_due_km") @db.Decimal(10, 1)
+  nextDueDate DateTime? @map("next_due_date") @db.Date
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  lorry Lorry @relation(fields: [lorryId], references: [id], onDelete: Cascade)
+
+  @@index([lorryId, serviceDate])
+  @@index([nextDueDate])
+  @@map("lorry_maintenance")
+  @@schema("fleet")
+}
+
+model Route {
+  id                  String      @id @default(uuid(7)) @db.Uuid
+  code                String      @unique @db.Text
+  name                String      @db.Text
+  description         String?     @db.Text
+  estimatedDistanceKm Decimal?    @map("estimated_distance_km") @db.Decimal(8, 1)
+  status              RouteStatus @default(ACTIVE)
+  version             Int         @default(0)
+  createdAt           DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt           DateTime    @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  stops       RouteStop[]
+  assignments RouteAssignment[]
+  trips       Trip[]
+
+  @@index([status])
+  @@map("routes")
+  @@schema("fleet")
+}
+
+model RouteStop {
+  id              String   @id @default(uuid(7)) @db.Uuid
+  routeId         String   @map("route_id") @db.Uuid
+  supplierId      String   @map("supplier_id") @db.Uuid
+  sequence        Int
+  expectedArrival String?  @map("expected_arrival") @db.VarChar(8)
+  notes           String?  @db.Text
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  route       Route        @relation(fields: [routeId], references: [id], onDelete: Cascade)
+  tripEvents  TripEvent[]
+
+  @@unique([routeId, sequence])
+  @@unique([routeId, supplierId])
+  @@index([supplierId])
+  @@map("route_stops")
+  @@schema("fleet")
+}
+
+model RouteAssignment {
+  id                   String           @id @default(uuid(7)) @db.Uuid
+  routeId              String           @map("route_id") @db.Uuid
+  lorryId              String           @map("lorry_id") @db.Uuid
+  driverId             String?          @map("driver_id") @db.Uuid
+  helperId             String?          @map("helper_id") @db.Uuid
+  supervisorId         String?          @map("supervisor_id") @db.Uuid
+  effectiveFrom        DateTime         @map("effective_from") @db.Date
+  effectiveTo          DateTime?        @map("effective_to") @db.Date
+  weekdays             Int[]            @default([])
+  status               AssignmentStatus @default(ACTIVE)
+  changeReason         String?          @map("change_reason") @db.Text
+  changedBy            String?          @map("changed_by") @db.Uuid
+  previousAssignmentId String?          @map("previous_assignment_id") @db.Uuid
+  version              Int              @default(0)
+  createdAt            DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt            DateTime         @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  route Route @relation(fields: [routeId], references: [id])
+  lorry Lorry @relation(fields: [lorryId], references: [id])
+  trips Trip[]
+
+  @@index([routeId, effectiveFrom])
+  @@index([lorryId, effectiveFrom])
+  @@index([status])
+  @@map("route_assignments")
+  @@schema("fleet")
+}
+
+model Trip {
+  id                    String     @id @default(uuid(7)) @db.Uuid
+  routeAssignmentId     String?    @map("route_assignment_id") @db.Uuid
+  routeId               String     @map("route_id") @db.Uuid
+  lorryId               String     @map("lorry_id") @db.Uuid
+  driverId              String?    @map("driver_id") @db.Uuid
+  helperId              String?    @map("helper_id") @db.Uuid
+  supervisorId          String?    @map("supervisor_id") @db.Uuid
+  ownerPersonId         String     @map("owner_person_id") @db.Uuid
+  tripDate              DateTime   @map("trip_date") @db.Date
+  status                TripStatus @default(PLANNED)
+  startedAt             DateTime?  @map("started_at") @db.Timestamptz(6)
+  endedAt               DateTime?  @map("ended_at") @db.Timestamptz(6)
+  startOdometerKm       Decimal    @map("start_odometer_km") @db.Decimal(10, 1)
+  endOdometerKm         Decimal?   @map("end_odometer_km") @db.Decimal(10, 1)
+  distanceKm            Decimal?   @map("distance_km") @db.Decimal(10, 1)
+  startOdometerPhotoKey String?    @map("start_odometer_photo_key") @db.Text
+  endOdometerPhotoKey   String?    @map("end_odometer_photo_key") @db.Text
+  startedBy             String?    @map("started_by") @db.Uuid
+  endedBy               String?    @map("ended_by") @db.Uuid
+  startLat              Decimal?   @map("start_lat") @db.Decimal(9, 6)
+  startLng              Decimal?   @map("start_lng") @db.Decimal(9, 6)
+  endLat                Decimal?   @map("end_lat") @db.Decimal(9, 6)
+  endLng                Decimal?   @map("end_lng") @db.Decimal(9, 6)
+  clientTripId          String     @unique @map("client_trip_id") @db.Uuid
+  remarks               String?    @db.Text
+  version               Int        @default(0)
+  createdAt             DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt             DateTime   @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  routeAssignment RouteAssignment? @relation(fields: [routeAssignmentId], references: [id])
+  route           Route            @relation(fields: [routeId], references: [id])
+  lorry           Lorry            @relation(fields: [lorryId], references: [id])
+  events          TripEvent[]
+
+  @@index([tripDate, status])
+  @@index([routeId, tripDate])
+  @@index([lorryId, tripDate])
+  @@index([ownerPersonId, tripDate])
+  @@index([status])
+  @@map("trips")
+  @@schema("fleet")
+}
+
+model TripEvent {
+  id            String        @id @default(uuid(7)) @db.Uuid
+  tripId        String        @map("trip_id") @db.Uuid
+  eventType     TripEventType @map("event_type")
+  routeStopId   String?       @map("route_stop_id") @db.Uuid
+  occurredAt    DateTime      @map("occurred_at") @db.Timestamptz(6)
+  lat           Decimal?      @db.Decimal(9, 6)
+  lng           Decimal?      @db.Decimal(9, 6)
+  note          String?       @db.Text
+  clientEventId String        @unique @map("client_event_id") @db.Uuid
+  createdAt     DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  trip      Trip      @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  routeStop RouteStop? @relation(fields: [routeStopId], references: [id])
+
+  @@index([tripId, occurredAt])
+  @@map("trip_events")
+  @@schema("fleet")
+}
+
+model FleetAuditLog {
+  id         String   @id @default(uuid(7)) @db.Uuid
+  actorId    String?  @map("actor_id") @db.Uuid
+  actorType  String   @default("USER") @map("actor_type") @db.Text
+  action     String   @db.Text
+  entityType String   @map("entity_type") @db.Text
+  entityId   String   @map("entity_id") @db.Text
+  metadata   Json?    @db.JsonB
+  ip         String?  @db.Text
+  at         DateTime @default(now()) @db.Timestamptz(6)
+
+  @@index([entityType, entityId, at])
+  @@index([action, at])
+  @@map("fleet_audit_logs")
+  @@schema("fleet")
+}
+
+model OutboxEvent {
+  id          String    @id @default(uuid(7)) @db.Uuid
+  envelope    Json      @db.JsonB
+  publishedAt DateTime? @map("published_at") @db.Timestamptz(6)
+  attempts    Int       @default(0)
+  lastError   String?   @map("last_error") @db.Text
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([publishedAt, createdAt])
+  @@map("outbox_events")
+  @@schema("fleet")
+}

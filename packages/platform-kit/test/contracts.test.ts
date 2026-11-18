@@ -25,6 +25,12 @@ const validateCollectionPayload = ajv.compile(
 const validateTripPayload = ajv.compile(
   loadJson('../../event-contracts/schemas/trip.started.v1.json'),
 );
+const validateTripEndedPayload = ajv.compile(
+  loadJson('../../event-contracts/schemas/trip.ended.v1.json'),
+);
+const validateAssignmentChangedPayload = ajv.compile(
+  loadJson('../../event-contracts/schemas/assignment.changed.v1.json'),
+);
 const validateAttendanceDayPayload = ajv.compile(
   loadJson('../../event-contracts/schemas/attendance.day.closed.v1.json'),
 );
@@ -126,6 +132,62 @@ describe('event contracts', () => {
         type: 'trip.started',
         payload,
         actor: { type: 'USER', id: uuidv7() },
+        producer: 'fleet-service',
+      }),
+    );
+  });
+
+  it('validates trip.ended and assignment.changed event envelopes', () => {
+    const tripEndedPayload = {
+      tripId: uuidv7(),
+      routeId: uuidv7(),
+      lorryId: uuidv7(),
+      ownerPersonId: uuidv7(),
+      startedAt: '2026-11-18T06:00:00.000Z',
+      endedAt: '2026-11-18T14:30:00.000Z',
+      startOdometerKm: '12345.6',
+      endOdometerKm: '12402.1',
+      distanceKm: '56.5',
+      endedBy: uuidv7(),
+    };
+    expectValid(validateTripEndedPayload, tripEndedPayload);
+    expect(validateTripEndedPayload({ ...tripEndedPayload, distanceKm: '-1.0' })).toBe(false);
+    expectValid(
+      validateEventEnvelope,
+      createEvent({
+        type: 'trip.ended',
+        payload: tripEndedPayload,
+        actor: { type: 'USER', id: tripEndedPayload.endedBy },
+        producer: 'fleet-service',
+      }),
+    );
+
+    const assignmentPayload = {
+      assignmentId: uuidv7(),
+      previousAssignmentId: uuidv7(),
+      routeId: uuidv7(),
+      lorryId: uuidv7(),
+      driverId: uuidv7(),
+      helperId: null,
+      supervisorId: null,
+      effectiveFrom: '2026-11-19',
+      effectiveTo: null,
+      weekdays: [1, 3, 5],
+      status: 'ACTIVE',
+      changeReason: 'Driver changed after licence check.',
+      changedBy: uuidv7(),
+      changedAt: '2026-11-18T15:00:00.000Z',
+    };
+    expectValid(validateAssignmentChangedPayload, assignmentPayload);
+    expect(validateAssignmentChangedPayload({ ...assignmentPayload, weekdays: [1, 8] })).toBe(
+      false,
+    );
+    expectValid(
+      validateEventEnvelope,
+      createEvent({
+        type: 'assignment.changed',
+        payload: assignmentPayload,
+        actor: { type: 'USER', id: assignmentPayload.changedBy },
         producer: 'fleet-service',
       }),
     );

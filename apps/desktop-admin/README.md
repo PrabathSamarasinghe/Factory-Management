@@ -11,7 +11,10 @@ bank accounts, consent records, document metadata, and the audit-log viewer.
   `http://localhost:3000`)
 - An identity-service user whose roles include the permissions you want to
   exercise (for example `USER_READ`, `USER_MANAGE`, `ROLE_MANAGE`,
-  `PERSON_READ`, `PERSON_MANAGE`, `AUDIT_READ`)
+  `PERSON_READ`, `PERSON_MANAGE`, `AUDIT_READ`), plus the fleet codes
+  `lorry:read`, `lorry:create`, `lorry:update`, `route:read`,
+  `route:create`, `route:update`, `assignment:read`,
+  `assignment:create`, `assignment:change`
 
 ## Install
 
@@ -55,6 +58,7 @@ The admin console uses the shared desktop-core settings:
 | Variable                    | Default                           | Purpose                                      |
 | --------------------------- | --------------------------------- | -------------------------------------------- |
 | `GALATURA_GATEWAY_URL`      | `http://localhost:3000`           | Gateway base URL                             |
+| Fleet API base              | `<gateway>/api/v1/fleet`          | Derived from `GALATURA_GATEWAY_URL`          |
 | `GALATURA_CLIENT_APP`       | `C1`                              | Client app code sent as `x-client-app`       |
 | `GALATURA_REQUEST_TIMEOUT`  | `20`                              | HTTP timeout in seconds                      |
 | `GALATURA_VERIFY_TLS`       | `true`                            | Verify TLS certificates                      |
@@ -79,6 +83,13 @@ the login screen.
   generated on create. The registry shows barcodes; the detail view exposes
   bank accounts, document metadata upload/download, consent records, and
   supplier barcode reprint/print card actions.
+- **Fleet Lorries** - search/filter lorries, edit registration details, add
+  document metadata and maintenance records, and review expiry/maintenance
+  alerts.
+- **Fleet Routes** - edit route details and replace the ordered supplier stop
+  sequence.
+- **Fleet Assignments** - create effective-dated route/lorry assignments and
+  change active assignments with a mandatory reason.
 - **Account** - change your own password (also surfaced as a banner when
   `mustChangePassword` is set).
 - **Audit log** - browse identity-service `auth_audit` events with

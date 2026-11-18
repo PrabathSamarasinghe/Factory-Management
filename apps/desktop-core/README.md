@@ -28,6 +28,7 @@ All settings come from environment variables:
 | Variable                    | Default                           | Purpose                                      |
 | --------------------------- | --------------------------------- | -------------------------------------------- |
 | `GALATURA_GATEWAY_URL`      | `http://localhost:3000`           | Gateway base URL                             |
+| Fleet API base              | `<gateway>/api/v1/fleet`          | Derived from `GALATURA_GATEWAY_URL`          |
 | `GALATURA_CLIENT_APP`       | `C1`                              | Client app code sent as `x-client-app`       |
 | `GALATURA_REQUEST_TIMEOUT`  | `20`                              | HTTP timeout in seconds                      |
 | `GALATURA_VERIFY_TLS`       | `true`                            | Verify TLS certificates                      |
@@ -43,8 +44,8 @@ All settings come from environment variables:
   `401`, and typed errors (`ApiError`, `AuthenticationError`, `NetworkError`).
 - `token_store.py` - keyring-backed token persistence with an in-memory
   fallback when no backend is available.
-- `identity_api.py` / `people_api.py` - thin clients for the identity and
-  people service endpoints used by the admin console.
+- `identity_api.py` / `people_api.py` / `fleet_api.py` - thin clients for the
+  identity, people and fleet service endpoints used by the desktop apps.
 - `session.py` - `SessionManager` (Qt signals `logged_in` / `logged_out`,
   login/2FA/logout, profile + permission decoding).
 - `theme.py`, `widgets.py` - dark theme, page headers, cards, data tables,

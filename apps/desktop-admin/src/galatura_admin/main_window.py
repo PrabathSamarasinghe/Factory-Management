@@ -20,6 +20,9 @@ from PySide6.QtWidgets import (
 from .dialogs.account_dialog import AccountDialog
 from .pages.audit_page import AuditPage
 from .pages.dashboard_page import DashboardPage
+from .pages.fleet_assignments_page import AssignmentsPage
+from .pages.fleet_lorries_page import LorriesPage
+from .pages.fleet_routes_page import RoutesPage
 from .pages.persons_page import PersonsPage
 from .pages.roles_page import RolesPage
 from .pages.users_page import UsersPage
@@ -70,6 +73,9 @@ class MainWindow(QMainWindow):
                 "People & Suppliers",
                 "Users",
                 "Roles & Permissions",
+                "Fleet Lorries",
+                "Fleet Routes",
+                "Fleet Assignments",
                 "Audit Log",
             ]
         ):
@@ -132,6 +138,9 @@ class MainWindow(QMainWindow):
             PersonsPage(session),
             UsersPage(session),
             RolesPage(session),
+            LorriesPage(session),
+            RoutesPage(session),
+            AssignmentsPage(session),
             AuditPage(session),
         ]
         for page in self.pages:

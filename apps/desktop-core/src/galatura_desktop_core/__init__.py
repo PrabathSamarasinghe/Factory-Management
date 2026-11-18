@@ -12,6 +12,7 @@ from .errors import (
     NetworkError,
     human_error,
 )
+from .fleet_api import FleetApi
 from .identity_api import IdentityApi
 from .people_api import PeopleApi
 from .session import SessionManager
@@ -23,6 +24,7 @@ __all__ = [
     "ApiError",
     "AppConfig",
     "AuthenticationError",
+    "FleetApi",
     "IdentityApi",
     "NetworkError",
     "PeopleApi",

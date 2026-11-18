@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.galatura.local/events/trip.ended.v1.json",
+  "title": "trip.ended payload v1",
+  "$comment": "Payload only. Wrapped by event-envelope.v1.json. Decimals are strings to avoid float rounding.",
+  "type": "object",
+  "required": [
+    "tripId",
+    "routeId",
+    "lorryId",
+    "ownerPersonId",
+    "startedAt",
+    "endedAt",
+    "startOdometerKm",
+    "endOdometerKm",
+    "distanceKm"
+  ],
+  "properties": {
+    "tripId": { "type": "string", "format": "uuid" },
+    "routeId": { "type": "string", "format": "uuid" },
+    "lorryId": { "type": "string", "format": "uuid" },
+    "ownerPersonId": { "type": "string", "format": "uuid" },
+    "startedAt": { "type": ["string", "null"], "format": "date-time" },
+    "endedAt": { "type": "string", "format": "date-time" },
+    "startOdometerKm": {
+      "type": "string",
+      "pattern": "^\\d+(\\.\\d{1,1})?$"
+    },
+    "endOdometerKm": {
+      "type": "string",
+      "pattern": "^\\d+(\\.\\d{1,1})?$"
+    },
+    "distanceKm": {
+      "type": "string",
+      "pattern": "^\\d+(\\.\\d{1,1})?$"
+    },
+    "endedBy": { "type": ["string", "null"], "format": "uuid" }
+  }
+}

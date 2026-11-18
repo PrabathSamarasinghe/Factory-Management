@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.galatura.local/events/assignment.changed.v1.json",
+  "title": "assignment.changed payload v1",
+  "$comment": "Payload only. Wrapped by event-envelope.v1.json.",
+  "type": "object",
+  "required": [
+    "assignmentId",
+    "previousAssignmentId",
+    "routeId",
+    "lorryId",
+    "effectiveFrom",
+    "weekdays",
+    "status",
+    "changeReason",
+    "changedAt"
+  ],
+  "properties": {
+    "assignmentId": { "type": "string", "format": "uuid" },
+    "previousAssignmentId": { "type": "string", "format": "uuid" },
+    "routeId": { "type": "string", "format": "uuid" },
+    "lorryId": { "type": "string", "format": "uuid" },
+    "driverId": { "type": ["string", "null"], "format": "uuid" },
+    "helperId": { "type": ["string", "null"], "format": "uuid" },
+    "supervisorId": { "type": ["string", "null"], "format": "uuid" },
+    "effectiveFrom": { "type": "string", "format": "date" },
+    "effectiveTo": { "type": ["string", "null"], "format": "date" },
+    "weekdays": {
+      "type": "array",
+      "items": { "type": "integer", "minimum": 1, "maximum": 7 },
+      "uniqueItems": true
+    },
+    "status": { "type": "string", "enum": ["ACTIVE", "ENDED"] },
+    "changeReason": { "type": "string", "minLength": 1 },
+    "changedBy": { "type": ["string", "null"], "format": "uuid" },
+    "changedAt": { "type": "string", "format": "date-time" }
+  }
+}
