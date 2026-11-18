@@ -1,0 +1,313 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  schemas  = ["attendance"]
+}
+
+enum AttendanceEventType {
+  CHECK_IN
+  CHECK_OUT
+
+  @@schema("attendance")
+}
+
+enum AttendanceMethod {
+  FACE
+  MANUAL
+  IMPORT
+
+  @@schema("attendance")
+}
+
+enum AttendanceDayStatus {
+  PRESENT
+  ABSENT
+  HALF_DAY
+  LEAVE
+  HOLIDAY
+  INCOMPLETE
+
+  @@schema("attendance")
+}
+
+enum CorrectionStatus {
+  PENDING
+  APPROVED
+  REJECTED
+
+  @@schema("attendance")
+}
+
+enum LeaveRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+
+  @@schema("attendance")
+}
+
+enum DeviceKind {
+  KIOSK
+  PERSONAL
+
+  @@schema("attendance")
+}
+
+enum DeviceStatus {
+  ACTIVE
+  DISABLED
+  REVOKED
+
+  @@schema("attendance")
+}
+
+model FaceTemplate {
+  id             String   @id @default(uuid(7)) @db.Uuid
+  personId       String   @map("person_id") @db.Uuid
+  templateEnc    String   @map("template_enc") @db.Text
+  encKeyId       String   @map("enc_key_id") @db.Text
+  modelName      String   @map("model_name") @db.Text
+  modelVersion   String   @map("model_version") @db.Text
+  embeddingDim   Int      @map("embedding_dim")
+  qualityScore   Decimal  @map("quality_score") @db.Decimal(5, 2)
+  isActive       Boolean  @default(true) @map("is_active")
+  enrolledBy     String?  @map("enrolled_by") @db.Uuid
+  enrolledAt     DateTime @default(now()) @map("enrolled_at") @db.Timestamptz(6)
+  revokedAt      DateTime? @map("revoked_at") @db.Timestamptz(6)
+  revokeReason   String?  @map("revoke_reason") @db.Text
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([personId, isActive])
+  @@map("face_templates")
+  @@schema("attendance")
+}
+
+model FaceVerificationAttempt {
+  id                String   @id @default(uuid(7)) @db.Uuid
+  deviceId          String?  @map("device_id") @db.Uuid
+  personId          String?  @map("person_id") @db.Uuid
+  matched           Boolean
+  similarity        Decimal? @db.Decimal(5, 4)
+  threshold         Decimal  @db.Decimal(5, 4)
+  livenessScore     Decimal? @map("liveness_score") @db.Decimal(5, 4)
+  livenessPassed    Boolean  @map("liveness_passed")
+  modelVersion      String   @map("model_version") @db.Text
+  failureReason     String?  @map("failure_reason") @db.Text
+  capturedAt        DateTime @map("captured_at") @db.Timestamptz(6)
+  ip                String?  @db.Text
+  frameObjectKey    String?  @map("frame_object_key") @db.Text
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([personId, capturedAt])
+  @@index([deviceId, capturedAt])
+  @@index([createdAt])
+  @@map("face_verification_attempts")
+  @@schema("attendance")
+}
+
+model Shift {
+  id             String   @id @default(uuid(7)) @db.Uuid
+  name           String   @db.Text
+  startTime      String   @map("start_time") @db.VarChar(5)
+  endTime        String   @map("end_time") @db.VarChar(5)
+  graceMinutes   Int      @default(0) @map("grace_minutes")
+  breakMinutes   Int      @default(0) @map("break_minutes")
+  crossesMidnight Boolean @default(false) @map("crosses_midnight")
+  active         Boolean  @default(true)
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([active])
+  @@map("shifts")
+  @@schema("attendance")
+}
+
+model ShiftAssignment {
+  id            String   @id @default(uuid(7)) @db.Uuid
+  personId      String   @map("person_id") @db.Uuid
+  shiftId       String   @map("shift_id") @db.Uuid
+  effectiveFrom DateTime @map("effective_from") @db.Date
+  effectiveTo   DateTime? @map("effective_to") @db.Date
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([personId, effectiveFrom])
+  @@index([shiftId])
+  @@map("shift_assignments")
+  @@schema("attendance")
+}
+
+model AttendanceEvent {
+  id                    String             @id @default(uuid(7)) @db.Uuid
+  personId              String             @map("person_id") @db.Uuid
+  eventType             AttendanceEventType @map("event_type")
+  eventAt               DateTime           @map("event_at") @db.Timestamptz(6)
+  workDate              DateTime           @map("work_date") @db.Date
+  method                AttendanceMethod
+  verificationAttemptId String?            @map("verification_attempt_id") @db.Uuid
+  deviceId              String?            @map("device_id") @db.Uuid
+  locationId            String?            @map("location_id") @db.Uuid
+  gpsLat                Decimal?           @map("gps_lat") @db.Decimal(9, 6)
+  gpsLng                Decimal?           @map("gps_lng") @db.Decimal(9, 6)
+  manualReason          String?            @map("manual_reason") @db.Text
+  enteredBy             String?            @map("entered_by") @db.Uuid
+  clientEventId         String             @unique @map("client_event_id") @db.Uuid
+  createdAt             DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([personId, eventAt])
+  @@index([workDate])
+  @@index([deviceId])
+  @@map("attendance_events")
+  @@schema("attendance")
+}
+
+model AttendanceDay {
+  id                String              @id @default(uuid(7)) @db.Uuid
+  personId          String              @map("person_id") @db.Uuid
+  workDate          DateTime            @map("work_date") @db.Date
+  firstIn           DateTime?           @map("first_in") @db.Timestamptz(6)
+  lastOut           DateTime?           @map("last_out") @db.Timestamptz(6)
+  workedMinutes     Int                 @default(0) @map("worked_minutes")
+  lateMinutes       Int                 @default(0) @map("late_minutes")
+  earlyLeaveMinutes Int                 @default(0) @map("early_leave_minutes")
+  overtimeMinutes   Int                 @default(0) @map("overtime_minutes")
+  status            AttendanceDayStatus
+  shiftId           String?             @map("shift_id") @db.Uuid
+  approved          Boolean             @default(false)
+  approvedBy        String?             @map("approved_by") @db.Uuid
+  closedAt          DateTime?           @map("closed_at") @db.Timestamptz(6)
+  createdAt         DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime            @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@unique([personId, workDate])
+  @@index([workDate, status])
+  @@map("attendance_days")
+  @@schema("attendance")
+}
+
+model AttendanceCorrection {
+  id           String           @id @default(uuid(7)) @db.Uuid
+  personId     String           @map("person_id") @db.Uuid
+  workDate     DateTime         @map("work_date") @db.Date
+  requestedBy  String           @map("requested_by") @db.Uuid
+  proposedIn   DateTime?        @map("proposed_in") @db.Timestamptz(6)
+  proposedOut  DateTime?        @map("proposed_out") @db.Timestamptz(6)
+  reason       String           @db.Text
+  status       CorrectionStatus @default(PENDING)
+  decidedBy    String?          @map("decided_by") @db.Uuid
+  decidedAt    DateTime?        @map("decided_at") @db.Timestamptz(6)
+  createdAt    DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime         @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([personId, workDate])
+  @@index([status])
+  @@map("attendance_corrections")
+  @@schema("attendance")
+}
+
+model LeaveType {
+  id          String   @id @default(uuid(7)) @db.Uuid
+  code        String   @unique @db.Text
+  name        String   @db.Text
+  paid        Boolean  @default(true)
+  annualQuota Decimal? @map("annual_quota") @db.Decimal(6, 2)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("leave_types")
+  @@schema("attendance")
+}
+
+model LeaveRequest {
+  id          String             @id @default(uuid(7)) @db.Uuid
+  personId    String             @map("person_id") @db.Uuid
+  leaveTypeId String             @map("leave_type_id") @db.Uuid
+  fromDate    DateTime           @map("from_date") @db.Date
+  toDate      DateTime           @map("to_date") @db.Date
+  days        Decimal            @db.Decimal(6, 2)
+  reason      String?            @db.Text
+  status      LeaveRequestStatus @default(PENDING)
+  decidedBy   String?            @map("decided_by") @db.Uuid
+  decidedAt   DateTime?          @map("decided_at") @db.Timestamptz(6)
+  createdAt   DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime           @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([personId, fromDate])
+  @@index([status])
+  @@map("leave_requests")
+  @@schema("attendance")
+}
+
+model Holiday {
+  id        String   @id @default(uuid(7)) @db.Uuid
+  date      DateTime @unique @db.Date
+  name      String   @db.Text
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("holidays")
+  @@schema("attendance")
+}
+
+model AttendanceLocation {
+  id        String   @id @default(uuid(7)) @db.Uuid
+  name      String   @db.Text
+  gpsLat    Decimal? @map("gps_lat") @db.Decimal(9, 6)
+  gpsLng    Decimal? @map("gps_lng") @db.Decimal(9, 6)
+  radiusM   Int      @default(100) @map("radius_m")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("attendance_locations")
+  @@schema("attendance")
+}
+
+model RegisteredDevice {
+  id         String       @id @default(uuid(7)) @db.Uuid
+  name       String       @db.Text
+  locationId String?      @map("location_id") @db.Uuid
+  kind       DeviceKind
+  status     DeviceStatus @default(ACTIVE)
+  apiKeyHash String       @unique @map("api_key_hash") @db.Text
+  createdAt  DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt  DateTime     @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([locationId])
+  @@map("registered_devices")
+  @@schema("attendance")
+}
+
+model AttendanceAuditLog {
+  id         String   @id @default(uuid(7)) @db.Uuid
+  actorId    String?  @map("actor_id") @db.Uuid
+  actorType  String   @default("USER") @map("actor_type") @db.Text
+  action     String   @db.Text
+  entityType String   @map("entity_type") @db.Text
+  entityId   String   @map("entity_id") @db.Text
+  metadata   Json?    @db.JsonB
+  ip         String?  @db.Text
+  at         DateTime @default(now()) @db.Timestamptz(6)
+
+  @@index([entityType, entityId, at])
+  @@index([action, at])
+  @@map("attendance_audit_logs")
+  @@schema("attendance")
+}
+
+model OutboxEvent {
+  id          String    @id @default(uuid(7)) @db.Uuid
+  envelope    Json      @db.JsonB
+  publishedAt DateTime? @map("published_at") @db.Timestamptz(6)
+  attempts    Int       @default(0)
+  lastError   String?   @map("last_error") @db.Text
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([publishedAt, createdAt])
+  @@map("outbox_events")
+  @@schema("attendance")
+}

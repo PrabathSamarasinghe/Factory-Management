@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.galatura.local/events/attendance.day.closed.v1.json",
+  "title": "attendance.day.closed payload v1",
+  "$comment": "Payload only. Wrapped by event-envelope.v1.json. Contains no biometric data or images.",
+  "type": "object",
+  "required": [
+    "personId",
+    "workDate",
+    "status",
+    "workedMinutes",
+    "lateMinutes",
+    "earlyLeaveMinutes",
+    "overtimeMinutes"
+  ],
+  "properties": {
+    "personId": { "type": "string", "format": "uuid" },
+    "workDate": { "type": "string", "format": "date" },
+    "status": {
+      "type": "string",
+      "enum": ["PRESENT", "ABSENT", "HALF_DAY", "LEAVE", "HOLIDAY", "INCOMPLETE"]
+    },
+    "firstIn": { "type": ["string", "null"], "format": "date-time" },
+    "lastOut": { "type": ["string", "null"], "format": "date-time" },
+    "workedMinutes": { "type": "integer", "minimum": 0 },
+    "lateMinutes": { "type": "integer", "minimum": 0 },
+    "earlyLeaveMinutes": { "type": "integer", "minimum": 0 },
+    "overtimeMinutes": { "type": "integer", "minimum": 0 },
+    "shiftId": { "type": ["string", "null"], "format": "uuid" },
+    "approved": { "type": "boolean" }
+  }
+}

@@ -29,6 +29,17 @@
       "consumers": ["reporting-service", "realtime-service"],
       "orderingKey": "tripId",
       "since": "2026-11-15"
+    },
+    {
+      "type": "attendance.day.closed",
+      "version": 1,
+      "status": "active",
+      "schema": "schemas/attendance.day.closed.v1.json",
+      "owner": "attendance-service",
+      "producers": ["attendance-service"],
+      "consumers": ["accounts-service", "reporting-service"],
+      "orderingKey": "personId",
+      "since": "2026-11-18"
     }
   ]
 }

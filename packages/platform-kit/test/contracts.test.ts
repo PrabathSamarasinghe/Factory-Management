@@ -25,6 +25,9 @@ const validateCollectionPayload = ajv.compile(
 const validateTripPayload = ajv.compile(
   loadJson('../../event-contracts/schemas/trip.started.v1.json'),
 );
+const validateAttendanceDayPayload = ajv.compile(
+  loadJson('../../event-contracts/schemas/attendance.day.closed.v1.json'),
+);
 
 function expectValid(validate: ReturnType<typeof ajv.compile>, value: unknown): void {
   const valid = validate(value);
@@ -124,6 +127,35 @@ describe('event contracts', () => {
         payload,
         actor: { type: 'USER', id: uuidv7() },
         producer: 'fleet-service',
+      }),
+    );
+  });
+
+  it('validates an attendance.day.closed event envelope', () => {
+    const payload = {
+      personId: uuidv7(),
+      workDate: '2026-11-18',
+      status: 'PRESENT',
+      firstIn: '2026-11-18T03:55:00.000Z',
+      lastOut: '2026-11-18T13:05:00.000Z',
+      workedMinutes: 550,
+      lateMinutes: 0,
+      earlyLeaveMinutes: 0,
+      overtimeMinutes: 25,
+      shiftId: uuidv7(),
+      approved: true,
+    };
+
+    expectValid(validateAttendanceDayPayload, payload);
+    expect(validateAttendanceDayPayload({ ...payload, status: 'PRESENT_' })).toBe(false);
+    expect(validateAttendanceDayPayload({ ...payload, workedMinutes: -1 })).toBe(false);
+    expectValid(
+      validateEventEnvelope,
+      createEvent({
+        type: 'attendance.day.closed',
+        payload,
+        actor: { type: 'SYSTEM' },
+        producer: 'attendance-service',
       }),
     );
   });
