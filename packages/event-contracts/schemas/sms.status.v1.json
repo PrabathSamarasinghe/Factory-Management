@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.galatura.local/events/sms.status.v1.json",
+  "title": "sms.* payload v1",
+  "$comment": "Payload only. Wrapped by event-envelope.v1.json. Contains identifiers only; never recipient phones or rendered SMS bodies.",
+  "type": "object",
+  "required": ["messageId", "relatedType", "relatedId"],
+  "properties": {
+    "messageId": { "type": "string", "format": "uuid" },
+    "relatedType": { "type": "string", "minLength": 1, "maxLength": 80 },
+    "relatedId": { "type": "string", "format": "uuid" },
+    "eventId": { "type": "string", "format": "uuid" },
+    "provider": { "type": "string", "minLength": 1, "maxLength": 40 },
+    "providerMessageId": { "type": "string", "minLength": 1, "maxLength": 200 },
+    "attempts": { "type": "integer", "minimum": 0 },
+    "reason": { "type": "string", "maxLength": 500 },
+    "queuedAt": { "type": "string", "format": "date-time" },
+    "sentAt": { "type": "string", "format": "date-time" },
+    "occurredAt": { "type": "string", "format": "date-time" }
+  }
+}

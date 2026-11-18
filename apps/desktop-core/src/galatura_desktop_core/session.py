@@ -13,6 +13,7 @@ from .config import AppConfig, load_config
 from .errors import ApiError, AuthenticationError
 from .fleet_api import FleetApi
 from .identity_api import IdentityApi
+from .notification_api import NotificationApi
 from .people_api import PeopleApi
 
 logger = logging.getLogger(__name__)
@@ -33,6 +34,7 @@ class SessionManager(QObject):
         self.people = PeopleApi(self.client)
         self.fleet = FleetApi(self.client)
         self.collection = CollectionApi(self.client)
+        self.notification = NotificationApi(self.client)
         self.profile: dict[str, Any] = {}
         self.roles: list[str] = []
         self.permissions: list[str] = []

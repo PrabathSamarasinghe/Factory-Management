@@ -19,6 +19,7 @@ from PySide6.QtWidgets import (
 )
 
 from .pages.discrepancies_page import DiscrepanciesPage
+from .pages.sms_page import SmsPage
 from .pages.totals_page import TotalsPage
 from .pages.trips_page import TripsPage
 from .pages.weighing_page import WeighingPage
@@ -62,7 +63,9 @@ class MainWindow(QMainWindow):
         self.nav_group = QButtonGroup(self)
         self.nav_group.setExclusive(True)
         self.nav_buttons: list[QPushButton] = []
-        for index, label in enumerate(["Trips", "Weighing", "Discrepancies", "Daily Totals"]):
+        for index, label in enumerate(
+            ["Trips", "Weighing", "Discrepancies", "Supplier SMS", "Daily Totals"]
+        ):
             button = QPushButton(label)
             button.setObjectName("Nav")
             button.setCheckable(True)
@@ -104,6 +107,7 @@ class MainWindow(QMainWindow):
             TripsPage(session),
             WeighingPage(session),
             DiscrepanciesPage(session),
+            SmsPage(session),
             TotalsPage(session),
         ]
         for page in self.pages:

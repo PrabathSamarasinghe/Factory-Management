@@ -21,6 +21,7 @@ import { HomeScreen } from './src/screens/HomeScreen';
 import { ManualReportScreen } from './src/screens/ManualReportScreen';
 import { PickupScreen } from './src/screens/PickupScreen';
 import { QueueScreen } from './src/screens/QueueScreen';
+import { SmsStatusScreen } from './src/screens/SmsStatusScreen';
 import { getDeviceId } from './src/storage/appStorage';
 import { listOutbox } from './src/storage/encryptedStore';
 import { colors } from './src/theme';
@@ -29,7 +30,8 @@ type Route =
   | { name: 'home' }
   | { name: 'pickup' }
   | { name: 'queue' }
-  | { name: 'manual-report' };
+  | { name: 'manual-report' }
+  | { name: 'sms-status' };
 
 export default function App() {
   return (
@@ -172,6 +174,7 @@ function AppShell() {
           onPickup={() => setRoute({ name: 'pickup' })}
           onQueue={() => setRoute({ name: 'queue' })}
           onManualReport={() => setRoute({ name: 'manual-report' })}
+          onSmsStatus={() => setRoute({ name: 'sms-status' })}
           onSync={() => syncPending()}
           onSignOut={() => signedOutNow()}
         />
@@ -197,6 +200,14 @@ function AppShell() {
       ) : null}
       {route.name === 'manual-report' ? (
         <ManualReportScreen onBack={() => setRoute({ name: 'home' })} />
+      ) : null}
+      {route.name === 'sms-status' ? (
+        <SmsStatusScreen
+          online={online}
+          syncing={syncing}
+          onBack={() => setRoute({ name: 'home' })}
+          onSync={() => syncPending()}
+        />
       ) : null}
     </SafeAreaView>
   );

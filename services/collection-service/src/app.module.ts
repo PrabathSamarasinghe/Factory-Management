@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { PrismaService } from './prisma/prisma.service';
 import { CollectionAuditService } from './audit/audit.service';
+import { NotificationPublisherService } from './events/notification-publisher.service';
 import { OutboxService } from './outbox/outbox.service';
 import { MasterDataController } from './master-data/master-data.controller';
 import { MasterDataService } from './master-data/master-data.service';
@@ -16,6 +17,7 @@ import { WeighingsService } from './weighings/weighings.service';
   providers: [
     PrismaService,
     CollectionAuditService,
+    NotificationPublisherService,
     OutboxService,
     MasterDataService,
     PickupsService,

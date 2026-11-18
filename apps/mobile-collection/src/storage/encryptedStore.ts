@@ -3,6 +3,7 @@ import CryptoJS from 'crypto-js';
 import * as Keychain from 'react-native-keychain';
 import type {
   CachedPickup,
+  DailySupplierTotal,
   MasterDataSnapshot,
   OutboxItem,
   PickupPayload,
@@ -12,6 +13,7 @@ import type {
   SyncData,
   SyncSnapshotRow,
   SyncPullResult,
+  SmsStatus,
 } from '../types';
 import { uuidV4 } from '../utils/uuid';
 
@@ -59,12 +61,12 @@ function toRoute(value: Partial<Route>): Route | null {
   }
   const stops = Array.isArray(value.stops)
     ? value.stops
-        .map((stop) => ({
+        .map(stop => ({
           id: text(stop?.id),
           supplierId: text(stop?.supplierId),
           sequence: Number(stop?.sequence ?? 0),
         }))
-        .filter((stop) => Boolean(stop.id) && Boolean(stop.supplierId))
+        .filter(stop => Boolean(stop.id) && Boolean(stop.supplierId))
     : [];
   return {
     id,
@@ -106,8 +108,37 @@ function toCachedPickup(value: Partial<CachedPickup>): CachedPickup | null {
   };
 }
 
+function toDailySupplierTotal(
+  value: Partial<DailySupplierTotal>,
+): DailySupplierTotal | null {
+  const id = text(value.id);
+  const supplierId = text(value.supplierId);
+  if (!id || !supplierId) {
+    return null;
+  }
+  const statuses: SmsStatus[] = ['NOT_REQUIRED', 'PENDING', 'SENT', 'FAILED'];
+  const status = statuses.includes(value.smsStatus as SmsStatus)
+    ? (value.smsStatus as SmsStatus)
+    : 'PENDING';
+  return {
+    id,
+    supplierId,
+    collectionDate: text(value.collectionDate),
+    totalNetKg: text(value.totalNetKg),
+    totalBags: Number(value.totalBags ?? 0),
+    tripId: text(value.tripId) || undefined,
+    finalized: Boolean(value.finalized),
+    finalizedAt: text(value.finalizedAt) || undefined,
+    finalizedBy: text(value.finalizedBy) || undefined,
+    smsStatus: status,
+    smsMessageId: text(value.smsMessageId) || undefined,
+    version: value.version === undefined ? undefined : Number(value.version),
+    updatedAt: text(value.updatedAt) || undefined,
+  };
+}
+
 function upsertBy<T>(rows: T[], incoming: T[], keyOf: (row: T) => string): T[] {
-  const merged = new Map(rows.map((row) => [keyOf(row), row]));
+  const merged = new Map(rows.map(row => [keyOf(row), row]));
   for (const row of incoming) {
     const key = keyOf(row);
     if (key) {
@@ -118,7 +149,9 @@ function upsertBy<T>(rows: T[], incoming: T[], keyOf: (row: T) => string): T[] {
 }
 
 export async function getDataEncryptionKey(): Promise<string> {
-  const existing = await Keychain.getGenericPassword({ service: ENCRYPTION_KEY_SERVICE });
+  const existing = await Keychain.getGenericPassword({
+    service: ENCRYPTION_KEY_SERVICE,
+  });
   if (existing) {
     return existing.password;
   }
@@ -178,26 +211,45 @@ export async function listSyncSnapshots(): Promise<SyncSnapshotRow[]> {
   return readTable<SyncSnapshotRow>('syncSnapshots');
 }
 
-export async function upsertMasterData(snapshot: MasterDataSnapshot): Promise<void> {
+export async function listSyncedDailyTotals(): Promise<DailySupplierTotal[]> {
+  const snapshots = await listSyncSnapshots();
+  const latest = snapshots.find(row => row.id === 'latest') ?? snapshots[0];
+  return (latest?.data?.dailyTotals ?? [])
+    .map(row => toDailySupplierTotal(row))
+    .filter((row): row is DailySupplierTotal => Boolean(row));
+}
+
+export async function upsertMasterData(
+  snapshot: MasterDataSnapshot,
+): Promise<void> {
   const suppliers = snapshot.suppliers
-    .map((supplier) => toSupplier(supplier))
+    .map(supplier => toSupplier(supplier))
     .filter((supplier): supplier is Supplier => Boolean(supplier));
   const routes = snapshot.routes
-    .map((route) => toRoute(route))
+    .map(route => toRoute(route))
     .filter((route): route is Route => Boolean(route));
   await Promise.all([
     writeTable(
       'suppliers',
-      upsertBy(await readTable<Supplier>('suppliers'), suppliers, (row) => row.supplierId),
+      upsertBy(
+        await readTable<Supplier>('suppliers'),
+        suppliers,
+        row => row.supplierId,
+      ),
     ),
-    writeTable('routes', upsertBy(await readTable<Route>('routes'), routes, (row) => row.id)),
+    writeTable(
+      'routes',
+      upsertBy(await readTable<Route>('routes'), routes, row => row.id),
+    ),
     writeCursor('masterData', text(snapshot.cursor)),
   ]);
 }
 
-export async function enqueuePickup(payload: PickupPayload): Promise<OutboxItem> {
+export async function enqueuePickup(
+  payload: PickupPayload,
+): Promise<OutboxItem> {
   const rows = await readTable<OutboxItem>('outbox');
-  const existing = rows.find((row) => row.clientId === payload.clientPickupId);
+  const existing = rows.find(row => row.clientId === payload.clientPickupId);
   if (existing) {
     return existing;
   }
@@ -215,8 +267,10 @@ export async function enqueuePickup(payload: PickupPayload): Promise<OutboxItem>
       'pickups',
       upsertBy(
         await readTable<CachedPickup>('pickups'),
-        [payload].map((pickup) => toCachedPickup(pickup)).filter(Boolean) as CachedPickup[],
-        (row) => row.clientPickupId,
+        [payload]
+          .map(pickup => toCachedPickup(pickup))
+          .filter(Boolean) as CachedPickup[],
+        row => row.clientPickupId,
       ),
     ),
   ]);
@@ -225,7 +279,9 @@ export async function enqueuePickup(payload: PickupPayload): Promise<OutboxItem>
 
 export async function listOutbox(): Promise<OutboxItem[]> {
   const rows = await readTable<OutboxItem>('outbox');
-  return [...rows].sort((left, right) => left.createdAt.localeCompare(right.createdAt));
+  return [...rows].sort((left, right) =>
+    left.createdAt.localeCompare(right.createdAt),
+  );
 }
 
 export async function updateOutboxItem(
@@ -235,7 +291,7 @@ export async function updateOutboxItem(
   const rows = await readTable<OutboxItem>('outbox');
   await writeTable(
     'outbox',
-    rows.map((row) => (row.id === id ? { ...row, ...patch } : row)),
+    rows.map(row => (row.id === id ? { ...row, ...patch } : row)),
   );
 }
 
@@ -244,7 +300,7 @@ export async function removeOutboxItems(ids: string[]): Promise<void> {
   const rows = await readTable<OutboxItem>('outbox');
   await writeTable(
     'outbox',
-    rows.filter((row) => !remove.has(row.id)),
+    rows.filter(row => !remove.has(row.id)),
   );
 }
 
@@ -255,7 +311,7 @@ export async function clearOutbox(): Promise<void> {
 function readCursor(key: string): Promise<string | null> {
   const task = cursorWrite.then(async () => {
     const rows = await readTable<SyncCursorRow>('cursor');
-    return rows.find((row) => row.key === key)?.value ?? null;
+    return rows.find(row => row.key === key)?.value ?? null;
   });
   cursorWrite = task.then(
     () => undefined,
@@ -270,7 +326,7 @@ function writeCursor(key: string, value: string): Promise<void> {
     const updated = upsertBy(
       rows,
       [{ key, value, updatedAt: new Date().toISOString() }],
-      (row) => row.key,
+      row => row.key,
     );
     await writeTable('cursor', updated);
   });
@@ -297,12 +353,22 @@ export async function rememberServerTime(serverTime: string): Promise<void> {
 }
 
 export async function applyPull(result: SyncPullResult): Promise<void> {
-  const pickups = (Array.isArray(result.data?.pickups) ? result.data.pickups : [])
-    .map((pickup) => toCachedPickup(pickup))
+  const pickups = (
+    Array.isArray(result.data?.pickups) ? result.data.pickups : []
+  )
+    .map(pickup => toCachedPickup(pickup))
     .filter((pickup): pickup is CachedPickup => Boolean(pickup));
-  const weighings = Array.isArray(result.data?.weighings) ? result.data.weighings : [];
-  const dailyTotals = Array.isArray(result.data?.dailyTotals) ? result.data.dailyTotals : [];
-  const discrepancies = Array.isArray(result.data?.discrepancies) ? result.data.discrepancies : [];
+  const weighings = Array.isArray(result.data?.weighings)
+    ? result.data.weighings
+    : [];
+  const dailyTotals = (
+    Array.isArray(result.data?.dailyTotals) ? result.data.dailyTotals : []
+  )
+    .map(total => toDailySupplierTotal(total))
+    .filter((total): total is DailySupplierTotal => Boolean(total));
+  const discrepancies = Array.isArray(result.data?.discrepancies)
+    ? result.data.discrepancies
+    : [];
   const data: SyncData = { pickups, weighings, dailyTotals, discrepancies };
   const snapshot: SyncSnapshotRow = {
     id: 'latest',
@@ -317,12 +383,16 @@ export async function applyPull(result: SyncPullResult): Promise<void> {
       upsertBy(
         await readTable<CachedPickup>('pickups'),
         pickups,
-        (row) => row.clientPickupId || row.id || '',
+        row => row.clientPickupId || row.id || '',
       ),
     ),
     writeTable(
       'syncSnapshots',
-      upsertBy(await readTable<SyncSnapshotRow>('syncSnapshots'), [snapshot], (row) => row.id),
+      upsertBy(
+        await readTable<SyncSnapshotRow>('syncSnapshots'),
+        [snapshot],
+        row => row.id,
+      ),
     ),
   ]);
   await writeCursor('collectionSync', text(result.cursor));

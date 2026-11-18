@@ -34,6 +34,9 @@ const validateAssignmentChangedPayload = ajv.compile(
 const validateAttendanceDayPayload = ajv.compile(
   loadJson('../../event-contracts/schemas/attendance.day.closed.v1.json'),
 );
+const validateSmsStatusPayload = ajv.compile(
+  loadJson('../../event-contracts/schemas/sms.status.v1.json'),
+);
 
 function expectValid(validate: ReturnType<typeof ajv.compile>, value: unknown): void {
   const valid = validate(value);
@@ -220,6 +223,30 @@ describe('event contracts', () => {
         producer: 'attendance-service',
       }),
     );
+  });
+
+  it('validates sms status event envelopes without phone numbers', () => {
+    const messageId = uuidv7();
+    const relatedId = uuidv7();
+    const payload = {
+      messageId,
+      relatedType: 'DailySupplierTotal',
+      relatedId,
+      provider: 'FAKE',
+      attempts: 1,
+      sentAt: '2026-11-18T10:00:00.000Z',
+    };
+    expectValid(validateSmsStatusPayload, payload);
+    expectValid(
+      validateEventEnvelope,
+      createEvent({
+        type: 'sms.sent',
+        payload,
+        actor: { type: 'SYSTEM' },
+        producer: 'notification-service',
+      }),
+    );
+    expect(validateSmsStatusPayload({ ...payload, relatedId: 'not-a-uuid' })).toBe(false);
   });
 
   it('rejects malformed events', () => {

@@ -1,0 +1,135 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  schemas  = ["notification"]
+}
+
+enum SmsMessageStatus {
+  QUEUED
+  SENT
+  DELIVERED
+  FAILED
+
+  @@schema("notification")
+}
+
+model SmsTemplate {
+  id         String   @id @default(uuid(7)) @db.Uuid
+  code       String   @db.Text
+  language   String   @db.Text
+  body       String   @db.Text
+  active     Boolean  @default(true)
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@unique([code, language])
+  @@map("sms_templates")
+  @@schema("notification")
+}
+
+model SmsMessage {
+  id                String            @id @default(uuid(7)) @db.Uuid
+  recipientPhoneEnc String            @map("recipient_phone_enc") @db.Text
+  recipientPersonId String?           @map("recipient_person_id") @db.Uuid
+  templateCode      String            @map("template_code") @db.Text
+  bodyRendered      String            @map("body_rendered") @db.Text
+  relatedType       String            @map("related_type") @db.Text
+  relatedId         String            @map("related_id") @db.Uuid
+  idempotencyKey    String            @unique @map("idempotency_key") @db.Text
+  provider          String            @db.Text
+  senderId          String?           @map("sender_id") @db.Text
+  providerMessageId String?           @map("provider_message_id") @db.Text
+  status            SmsMessageStatus  @default(QUEUED)
+  attempts          Int               @default(0)
+  lastError         String?           @map("last_error") @db.Text
+  costEstimate      Decimal?          @map("cost_estimate") @db.Decimal(10, 4)
+  nextAttemptAt     DateTime?         @map("next_attempt_at") @db.Timestamptz(6)
+  queuedAt          DateTime          @default(now()) @map("queued_at") @db.Timestamptz(6)
+  sentAt            DateTime?         @map("sent_at") @db.Timestamptz(6)
+  deliveredAt       DateTime?         @map("delivered_at") @db.Timestamptz(6)
+  createdAt         DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime          @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([relatedType, relatedId])
+  @@index([status, nextAttemptAt])
+  @@index([providerMessageId])
+  @@map("sms_messages")
+  @@schema("notification")
+}
+
+model SmsDeadLetter {
+  id        String   @id @default(uuid(7)) @db.Uuid
+  messageId String   @unique @map("message_id") @db.Uuid
+  reason    String   @db.Text
+  attempts  Int
+  event     Json?
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@map("sms_dead_letters")
+  @@schema("notification")
+}
+
+model SmsProcessedEvent {
+  id        String   @id @db.Uuid
+  type      String   @db.Text
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@map("sms_processed_events")
+  @@schema("notification")
+}
+
+model SmsProviderConfig {
+  id             String   @id @default(uuid(7)) @db.Uuid
+  provider       String   @unique @db.Text
+  senderId       String   @map("sender_id") @db.Text
+  active         Boolean  @default(true)
+  dailyLimit     Int      @map("daily_limit")
+  monthlyLimit   Int      @map("monthly_limit")
+  costPerMessage Decimal  @map("cost_per_message") @db.Decimal(10, 4)
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("sms_provider_configs")
+  @@schema("notification")
+}
+
+model SmsAuditLog {
+  id         String   @id @default(uuid(7)) @db.Uuid
+  actorId    String?  @map("actor_id") @db.Uuid
+  action     String   @db.Text
+  entityType String   @map("entity_type") @db.Text
+  entityId   String   @map("entity_id") @db.Text
+  metadata   Json?
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([entityType, entityId])
+  @@map("sms_audit_logs")
+  @@schema("notification")
+}
+
+model OutboxEvent {
+  id        String   @id @db.Uuid
+  envelope  Json
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@map("outbox_events")
+  @@schema("notification")
+}
+
+model PushNotification {
+  id        String   @id @default(uuid(7)) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  title     String   @db.Text
+  body      String   @db.Text
+  data      Json?
+  sentAt    DateTime? @map("sent_at") @db.Timestamptz(6)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([userId, createdAt])
+  @@map("push_notifications")
+  @@schema("notification")
+}

@@ -24,6 +24,7 @@ export function HomeScreen({
   onPickup,
   onQueue,
   onManualReport,
+  onSmsStatus,
   onSync,
   onSignOut,
 }: {
@@ -35,6 +36,7 @@ export function HomeScreen({
   onPickup: () => void;
   onQueue: () => void;
   onManualReport: () => void;
+  onSmsStatus: () => void;
   onSync: () => void;
   onSignOut: () => void;
 }) {
@@ -145,6 +147,7 @@ export function HomeScreen({
           variant="ghost"
           onPress={onManualReport}
         />
+        <AppButton title="SMS status" variant="ghost" onPress={onSmsStatus} />
       </Card>
 
       <AppButton title="Sign out" variant="ghost" onPress={onSignOut} />

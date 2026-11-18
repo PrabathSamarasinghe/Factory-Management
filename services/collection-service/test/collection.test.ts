@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { BusinessRuleError, ValidationError, uuidv7 } from '@galatura/platform-kit';
 import { CollectionAuditService } from '../src/audit/audit.service';
+import { NotificationPublisherService } from '../src/events/notification-publisher.service';
 import { MasterDataService } from '../src/master-data/master-data.service';
 import { OutboxService } from '../src/outbox/outbox.service';
 import { PickupsService } from '../src/pickups/pickups.service';
@@ -118,13 +119,21 @@ describe('collection service', () => {
   let pickups: PickupsService;
   let weighings: WeighingsService;
   let sync: SyncService;
+  let notifications: { publishFinalized: ReturnType<typeof vi.fn> };
 
   beforeEach(() => {
     prisma = buildPrisma();
     audit = new CollectionAuditService(prisma);
     outbox = new OutboxService(prisma);
     pickups = new PickupsService(prisma, audit);
-    weighings = new WeighingsService(prisma, audit, outbox, pickups);
+    notifications = { publishFinalized: vi.fn().mockResolvedValue(undefined) };
+    weighings = new WeighingsService(
+      prisma,
+      audit,
+      outbox,
+      pickups,
+      notifications as unknown as NotificationPublisherService,
+    );
     sync = new SyncService(prisma, pickups);
   });
 
@@ -158,7 +167,9 @@ describe('collection service', () => {
       actor,
     );
     expect(corrected.supersedesId).toBe(first.id);
-    expect(prisma.__tables.pickup.find((row: any) => row.id === first.id).status).toBe('SUPERSEDED');
+    expect(prisma.__tables.pickup.find((row: any) => row.id === first.id).status).toBe(
+      'SUPERSEDED',
+    );
     expect((await pickups.listForTrip(TRIP_ID))[0].grossWeightKg).toBe('98.000');
 
     await expect(
@@ -237,6 +248,9 @@ describe('collection service', () => {
     expect(prisma.__tables.outboxEvent).toHaveLength(1);
     expect(prisma.__tables.outboxEvent[0].envelope.type).toBe('collection.finalized');
     expect(prisma.__tables.outboxEvent[0].envelope.payload.dailyTotalId).toBe(totals[0].id);
+    expect(notifications.publishFinalized).toHaveBeenCalledWith([
+      prisma.__tables.outboxEvent[0].envelope,
+    ]);
     expect(await weighings.readiness(TRIP_ID)).toEqual({
       ready: true,
       totalsFinalized: true,

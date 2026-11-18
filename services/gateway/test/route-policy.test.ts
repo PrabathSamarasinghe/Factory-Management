@@ -54,6 +54,12 @@ describe('RoutePolicyService (Tasks 1.5 & 1.8 - C7 Lockdown)', () => {
     expect(() => policy.evaluatePolicy('/api/v1/collection/weighings', 'C4')).not.toThrow();
   });
 
+  it('allows C4 clients to access notification status routes', () => {
+    expect(() => policy.evaluatePolicy('/api/v1/notification/sms', 'C4')).not.toThrow();
+    expect(() => policy.evaluatePolicy('/api/v1/notification/templates', undefined)).not.toThrow();
+    expect(() => policy.evaluatePolicy('/api/v1/notification/sms', 'C7')).toThrow(ForbiddenError);
+  });
+
   it('allows non-C7 clients (e.g. C1 / Admin) to access standard routes', () => {
     const adminPrincipal: any = {
       subject: 'admin-123',

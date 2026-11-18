@@ -87,10 +87,28 @@ export interface OutboxItem {
   payload: PickupPayload;
 }
 
+export type SmsStatus = 'NOT_REQUIRED' | 'PENDING' | 'SENT' | 'FAILED';
+
+export interface DailySupplierTotal {
+  id: string;
+  supplierId: string;
+  collectionDate: string;
+  totalNetKg: string;
+  totalBags: number;
+  tripId?: string;
+  finalized: boolean;
+  finalizedAt?: string;
+  finalizedBy?: string;
+  smsStatus: SmsStatus;
+  smsMessageId?: string;
+  version?: number;
+  updatedAt?: string;
+}
+
 export interface SyncData {
   pickups: CachedPickup[];
   weighings: Record<string, unknown>[];
-  dailyTotals: Record<string, unknown>[];
+  dailyTotals: DailySupplierTotal[];
   discrepancies: Record<string, unknown>[];
 }
 

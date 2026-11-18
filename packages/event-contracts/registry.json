@@ -20,6 +20,50 @@
       "since": "2026-11-15"
     },
     {
+      "type": "sms.queued",
+      "version": 1,
+      "status": "active",
+      "schema": "schemas/sms.status.v1.json",
+      "owner": "notification-service",
+      "producers": ["notification-service"],
+      "consumers": ["reporting-service", "realtime-service"],
+      "orderingKey": "messageId",
+      "since": "2026-11-18"
+    },
+    {
+      "type": "sms.sent",
+      "version": 1,
+      "status": "active",
+      "schema": "schemas/sms.status.v1.json",
+      "owner": "notification-service",
+      "producers": ["notification-service"],
+      "consumers": ["reporting-service", "realtime-service"],
+      "orderingKey": "messageId",
+      "since": "2026-11-18"
+    },
+    {
+      "type": "sms.delivered",
+      "version": 1,
+      "status": "active",
+      "schema": "schemas/sms.status.v1.json",
+      "owner": "notification-service",
+      "producers": ["notification-service"],
+      "consumers": ["reporting-service", "realtime-service"],
+      "orderingKey": "messageId",
+      "since": "2026-11-18"
+    },
+    {
+      "type": "sms.failed",
+      "version": 1,
+      "status": "active",
+      "schema": "schemas/sms.status.v1.json",
+      "owner": "notification-service",
+      "producers": ["notification-service"],
+      "consumers": ["reporting-service", "realtime-service"],
+      "orderingKey": "messageId",
+      "since": "2026-11-18"
+    },
+    {
       "type": "trip.started",
       "version": 1,
       "status": "active",

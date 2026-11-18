@@ -15,6 +15,7 @@ from .errors import (
 )
 from .fleet_api import FleetApi
 from .identity_api import IdentityApi
+from .notification_api import NotificationApi
 from .people_api import PeopleApi
 from .session import SessionManager
 from .theme import apply_theme
@@ -29,6 +30,7 @@ __all__ = [
     "FleetApi",
     "IdentityApi",
     "NetworkError",
+    "NotificationApi",
     "PeopleApi",
     "SessionManager",
     "TokenStore",

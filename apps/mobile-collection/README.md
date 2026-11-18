@@ -71,6 +71,8 @@ The app defines a camera/barcode adapter in `src/barcode/barcodeScanner.ts`. No 
 
 The **Manual-entry report** screen queries `GET /api/v1/collection/reports/manual-entries` for a date range and groups typed registration-number pickups by helper.
 
+The **SMS status** screen is read-only. It shows `smsStatus` from finalised daily totals in the latest encrypted sync snapshot, with supplier names resolved from cached master data. Pull-to-refresh runs the normal collection sync; resends are deliberately available only in C4.
+
 ## Sync behavior
 
 - Pickups are queued with a generated `clientPickupId` and optional GPS/route-stop metadata.

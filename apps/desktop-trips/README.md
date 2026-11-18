@@ -2,17 +2,18 @@
 
 PySide6 desktop client for the collection service: sign-in with optional TOTP
 2FA, factory weighing against trip pickups, discrepancy review, finalised daily
-totals and supplier statements.
+totals, supplier statements and live supplier-SMS delivery status.
 
 ## Prerequisites
 
 - Python 3.11 or newer
-- The gateway, identity, people, fleet and collection services running
-  (default gateway `http://localhost:3000`)
+- The gateway, identity, people, fleet, collection and notification services
+  running (default gateway `http://localhost:3000`)
 - A user with the trip and collection permissions needed for the screens you
   plan to use: `trip:read`, `trip:create`, `trip:update`, `trip:end`,
   `trip:cancel`, `collection:read`, `collection:weigh`, `collection:finalize`,
-  `collection:review` and `collection:resolve`
+  `collection:review`, `collection:resolve`, `sms:read`, `sms:resend` and
+  `sms:review`
 
 ## Install
 
@@ -64,6 +65,7 @@ The app uses the shared desktop-core settings. It defaults `x-client-app` to
 | --------------------------- | --------------------------------- | -------------------------------------------- |
 | `GALATURA_GATEWAY_URL`      | `http://localhost:3000`           | Gateway base URL                             |
 | Collection API base         | `<gateway>/api/v1/collection`     | Derived from `GALATURA_GATEWAY_URL`          |
+| Notification API base       | `<gateway>/api/v1/notification`   | Derived from `GALATURA_GATEWAY_URL`          |
 | `GALATURA_CLIENT_APP`       | `C4`                              | Client app code sent as `x-client-app`       |
 | `GALATURA_REQUEST_TIMEOUT`  | `20`                              | HTTP timeout in seconds                      |
 | `GALATURA_VERIFY_TLS`       | `true`                            | Verify TLS certificates                      |
@@ -84,6 +86,8 @@ The main window status bar shows the gateway, client app and signed-in user.
   record the weighing, check readiness, and finalise only after confirmation.
 - **Discrepancies** - filter discrepancies by status and resolve them with a
   status and note.
+- **Supplier SMS** - poll SMS delivery status every 15 seconds, filter by
+  status, resend failed messages and replay dead-letter entries.
 - **Daily Totals** - filter finalised daily totals by date/supplier and load
   supplier statements for a date range.
 

@@ -6,7 +6,10 @@ import {
   NotFoundError,
   uuidv7,
   ValidationError,
+  type EventEnvelope,
 } from '@galatura/platform-kit';
+import { $Enums } from '../../generated/prisma';
+import { NotificationPublisherService } from '../events/notification-publisher.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { CollectionAuditService } from '../audit/audit.service';
 import { OutboxService } from '../outbox/outbox.service';
@@ -58,6 +61,7 @@ export class WeighingsService {
     private readonly audit: CollectionAuditService,
     private readonly outbox: OutboxService,
     private readonly pickups: PickupsService,
+    private readonly notifications: NotificationPublisherService,
   ) {}
 
   async record(input: WeighingInput, context: RequestContext) {
@@ -183,6 +187,7 @@ export class WeighingsService {
 
     const now = new Date();
     const finalized: any[] = [];
+    const finalizedEvents: EventEnvelope[] = [];
     await this.prisma.$transaction(async (tx: any) => {
       for (const group of groups.values()) {
         const collectionDate = new Date(`${group.collectionDate}T00:00:00.000Z`);
@@ -241,6 +246,7 @@ export class WeighingsService {
           payload: { ...payload, dailyTotalId: total.id },
         });
         await this.outbox.append(event, tx);
+        finalizedEvents.push(event);
         finalized.push(total);
       }
     });
@@ -253,7 +259,41 @@ export class WeighingsService {
       entityId: tripId,
       metadata: { supplierCount: finalized.length },
     });
+    await this.notifications.publishFinalized(finalizedEvents);
     return finalized.map(serializeTotal);
+  }
+
+  async updateSmsStatus(
+    id: string,
+    input: { smsStatus?: unknown; smsMessageId?: unknown },
+    context: RequestContext,
+  ) {
+    const totalId = uuid(id, 'id');
+    const status = String(input.smsStatus ?? '');
+    if (!['NOT_REQUIRED', 'PENDING', 'SENT', 'FAILED'].includes(status)) {
+      throw new ValidationError('Unknown SMS status.');
+    }
+    const smsMessageId = optionalUuid(input.smsMessageId, 'smsMessageId');
+    const existing = await this.prisma.dailySupplierTotal.findUnique({ where: { id: totalId } });
+    if (!existing) throw new NotFoundError('Daily supplier total not found.');
+
+    const total = await this.prisma.dailySupplierTotal.update({
+      where: { id: totalId },
+      data: {
+        smsStatus: status as $Enums.SmsStatus,
+        smsMessageId,
+        version: { increment: 1 },
+      },
+    });
+    await this.audit.record({
+      actorId: context.actorId,
+      ip: context.ip,
+      action: 'collection.sms_status_updated',
+      entityType: 'DailySupplierTotal',
+      entityId: totalId,
+      metadata: { smsStatus: status, smsMessageId },
+    });
+    return serializeTotal(total);
   }
 
   async readiness(tripId: string) {

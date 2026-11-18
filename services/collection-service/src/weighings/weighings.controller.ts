@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, Query, Req } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, Query, Req } from '@nestjs/common';
 import type { Request } from 'express';
 import { assertPermission, contextFrom } from '../common/request';
 import {
@@ -36,13 +36,20 @@ export class WeighingsController {
   }
 
   @Post('weighings/discrepancies/:id/resolve')
-  resolve(
-    @Param('id') id: string,
-    @Body() body: ResolveDiscrepancyInput,
-    @Req() req: Request,
-  ) {
+  resolve(@Param('id') id: string, @Body() body: ResolveDiscrepancyInput, @Req() req: Request) {
     assertPermission(req, 'collection:resolve');
     return this.weighings.resolveDiscrepancy(id, body, contextFrom(req));
+  }
+
+  @Patch('totals/:id/sms-status')
+  updateSmsStatus(
+    @Param('id') id: string,
+    @Body()
+    body: { smsStatus?: unknown; smsMessageId?: unknown },
+    @Req() req: Request,
+  ) {
+    assertPermission(req, 'collection:review');
+    return this.weighings.updateSmsStatus(id, body, contextFrom(req));
   }
 
   @Get('totals/daily')
