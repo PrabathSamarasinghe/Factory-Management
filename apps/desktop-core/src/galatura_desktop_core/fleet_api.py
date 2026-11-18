@@ -140,3 +140,33 @@ class FleetApi:
                 "status": status,
             },
         )
+
+    def get_trip(self, trip_id: str) -> dict[str, Any]:
+        return self.client.get(self.base, f"/trips/{trip_id}")
+
+    def start_trip(self, payload: Mapping[str, Any]) -> dict[str, Any]:
+        return self.client.post(self.base, "/trips", json_body=dict(payload))
+
+    def add_trip_event(self, trip_id: str, payload: Mapping[str, Any]) -> dict[str, Any]:
+        return self.client.post(
+            self.base,
+            f"/trips/{trip_id}/events",
+            json_body=dict(payload),
+        )
+
+    def arrive_factory(self, trip_id: str) -> dict[str, Any]:
+        return self.client.post(self.base, f"/trips/{trip_id}/arrive-factory")
+
+    def end_trip(self, trip_id: str, payload: Mapping[str, Any]) -> dict[str, Any]:
+        return self.client.post(
+            self.base,
+            f"/trips/{trip_id}/end",
+            json_body=dict(payload),
+        )
+
+    def cancel_trip(self, trip_id: str, remarks: str | None = None) -> dict[str, Any]:
+        return self.client.post(
+            self.base,
+            f"/trips/{trip_id}/cancel",
+            json_body={"remarks": remarks},
+        )

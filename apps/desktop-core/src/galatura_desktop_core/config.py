@@ -40,6 +40,10 @@ class AppConfig:
     def fleet_base(self) -> str:
         return f"{self.gateway_url.rstrip('/')}/api/v1/fleet"
 
+    @property
+    def collection_base(self) -> str:
+        return f"{self.gateway_url.rstrip('/')}/api/v1/collection"
+
 
 def load_config() -> AppConfig:
     return AppConfig(

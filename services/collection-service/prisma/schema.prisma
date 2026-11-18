@@ -1,0 +1,208 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  schemas  = ["collection"]
+}
+
+enum ScanMethod {
+  BARCODE
+  REG_NO
+
+  @@schema("collection")
+}
+
+enum PickupStatus {
+  RECORDED
+  VOID
+  SUPERSEDED
+
+  @@schema("collection")
+}
+
+enum WeighingStatus {
+  RECORDED
+  VOID
+
+  @@schema("collection")
+}
+
+enum DiscrepancyStatus {
+  OPEN
+  ACCEPTED
+  DISPUTED
+  RESOLVED
+
+  @@schema("collection")
+}
+
+enum SmsStatus {
+  NOT_REQUIRED
+  PENDING
+  SENT
+  FAILED
+
+  @@schema("collection")
+}
+
+model Pickup {
+  id                   String       @id @default(uuid(7)) @db.Uuid
+  clientPickupId       String       @unique @map("client_pickup_id") @db.Uuid
+  tripId               String       @map("trip_id") @db.Uuid
+  routeStopId          String?      @map("route_stop_id") @db.Uuid
+  supplierId           String       @map("supplier_id") @db.Uuid
+  supplierRegNo        String       @map("supplier_reg_no") @db.Text
+  supplierBarcode      String?      @map("supplier_barcode") @db.Text
+  grossWeightKg        Decimal      @map("gross_weight_kg") @db.Decimal(10, 3)
+  bagsCount            Int          @map("bags_count")
+  tareKg               Decimal      @default(0) @map("tare_kg") @db.Decimal(10, 3)
+  moistureDeductionKg  Decimal      @default(0) @map("moisture_deduction_kg") @db.Decimal(10, 3)
+  qualityGrade         String?      @map("quality_grade") @db.Text
+  recordedBy           String       @map("recorded_by") @db.Uuid
+  recordedAtDevice     DateTime     @map("recorded_at_device") @db.Timestamptz(6)
+  receivedAtServer     DateTime     @default(now()) @map("received_at_server") @db.Timestamptz(6)
+  gpsLat               Decimal?     @map("gps_lat") @db.Decimal(9, 6)
+  gpsLng               Decimal?     @map("gps_lng") @db.Decimal(9, 6)
+  scanMethod           ScanMethod   @map("scan_method")
+  manualReason         String?      @map("manual_reason") @db.Text
+  status               PickupStatus @default(RECORDED)
+  supersedesId         String?      @map("supersedes_id") @db.Uuid
+  deviceId             String       @map("device_id") @db.Uuid
+  version              Int          @default(0)
+  createdAt            DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt            DateTime     @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([tripId])
+  @@index([supplierId])
+  @@index([recordedBy])
+  @@index([status])
+  @@map("pickups")
+  @@schema("collection")
+}
+
+model FactoryWeighing {
+  id                String         @id @default(uuid(7)) @db.Uuid
+  clientWeighingId  String         @unique @map("client_weighing_id") @db.Uuid
+  tripId            String         @map("trip_id") @db.Uuid
+  supplierId        String         @map("supplier_id") @db.Uuid
+  pickupId          String?        @map("pickup_id") @db.Uuid
+  netWeightKg       Decimal        @map("net_weight_kg") @db.Decimal(10, 3)
+  grossWeightKg     Decimal        @map("gross_weight_kg") @db.Decimal(10, 3)
+  tareKg            Decimal        @default(0) @map("tare_kg") @db.Decimal(10, 3)
+  bagsCount         Int            @map("bags_count")
+  deductionsKg      Decimal        @default(0) @map("deductions_kg") @db.Decimal(10, 3)
+  qualityGrade      String?        @map("quality_grade") @db.Text
+  scaleId           String         @map("scale_id") @db.Text
+  weighedBy         String         @map("weighed_by") @db.Uuid
+  weighedAt         DateTime       @map("weighed_at") @db.Timestamptz(6)
+  status            WeighingStatus @default(RECORDED)
+  version           Int            @default(0)
+  createdAt         DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime       @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@unique([tripId, supplierId])
+  @@index([pickupId])
+  @@index([weighedBy])
+  @@map("factory_weighings")
+  @@schema("collection")
+}
+
+model DailySupplierTotal {
+  id            String    @id @default(uuid(7)) @db.Uuid
+  supplierId    String    @map("supplier_id") @db.Uuid
+  collectionDate DateTime  @map("collection_date") @db.Date
+  totalNetKg    Decimal   @map("total_net_kg") @db.Decimal(10, 3)
+  totalBags     Int       @map("total_bags")
+  tripId        String    @map("trip_id") @db.Uuid
+  finalized     Boolean   @default(false)
+  finalizedAt   DateTime? @map("finalized_at") @db.Timestamptz(6)
+  finalizedBy   String?   @map("finalized_by") @db.Uuid
+  smsStatus     SmsStatus @default(PENDING) @map("sms_status")
+  smsMessageId  String?   @map("sms_message_id") @db.Uuid
+  version       Int       @default(0)
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@unique([supplierId, collectionDate])
+  @@index([tripId])
+  @@index([smsStatus])
+  @@map("daily_supplier_totals")
+  @@schema("collection")
+}
+
+model WeightDiscrepancy {
+  id          String            @id @default(uuid(7)) @db.Uuid
+  pickupId    String            @map("pickup_id") @db.Uuid
+  weighingId  String            @map("weighing_id") @db.Uuid
+  fieldKg     Decimal           @map("field_kg") @db.Decimal(10, 3)
+  factoryKg   Decimal           @map("factory_kg") @db.Decimal(10, 3)
+  diffKg      Decimal           @map("diff_kg") @db.Decimal(10, 3)
+  diffPct     Decimal           @map("diff_pct") @db.Decimal(10, 3)
+  status      DiscrepancyStatus @default(OPEN)
+  resolvedBy  String?           @map("resolved_by") @db.Uuid
+  note        String?           @db.Text
+  version     Int               @default(0)
+  createdAt   DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime          @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@unique([pickupId, weighingId])
+  @@index([status])
+  @@map("weight_discrepancies")
+  @@schema("collection")
+}
+
+model SyncBatch {
+  id          String   @id @default(uuid(7)) @db.Uuid
+  deviceId    String   @map("device_id") @db.Uuid
+  receivedAt  DateTime @default(now()) @map("received_at") @db.Timestamptz(6)
+  itemCount   Int      @map("item_count")
+  accepted    Int
+  rejected    Int
+  errors      Json
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([deviceId])
+  @@map("sync_batches")
+  @@schema("collection")
+}
+
+model Scale {
+  id             String    @id @db.Text
+  name           String    @db.Text
+  location       String?   @db.Text
+  calibratedOn   DateTime? @map("calibrated_on") @db.Date
+  calibrationDue DateTime? @map("calibration_due") @db.Date
+  active         Boolean   @default(true)
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("scales")
+  @@schema("collection")
+}
+
+model OutboxEvent {
+  id        String   @id @db.Uuid
+  envelope  Json
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@map("outbox_events")
+  @@schema("collection")
+}
+
+model CollectionAuditLog {
+  id         String   @id @default(uuid(7)) @db.Uuid
+  actorId    String?  @map("actor_id") @db.Uuid
+  action     String   @db.Text
+  entityType String   @map("entity_type") @db.Text
+  entityId   String   @map("entity_id") @db.Text
+  metadata   Json?
+  ip         String?  @db.Text
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([entityType, entityId])
+  @@map("collection_audit_logs")
+  @@schema("collection")
+}

@@ -1,0 +1,5 @@
+PySide6>=6.7
+requests>=2.31
+keyring>=24
+-e ./apps/desktop-core
+-e ./apps/desktop-trips

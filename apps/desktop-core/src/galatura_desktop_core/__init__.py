@@ -5,6 +5,7 @@ token storage, the authenticated session wrapper, theming and reusable widgets.
 """
 
 from .api_client import ApiClient
+from .collection_api import CollectionApi
 from .config import AppConfig, load_config
 from .errors import (
     ApiError,
@@ -24,6 +25,7 @@ __all__ = [
     "ApiError",
     "AppConfig",
     "AuthenticationError",
+    "CollectionApi",
     "FleetApi",
     "IdentityApi",
     "NetworkError",
