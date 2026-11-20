@@ -4,6 +4,7 @@ Nothing business-specific lives here: only configuration, the HTTP client,
 token storage, the authenticated session wrapper, theming and reusable widgets.
 """
 
+from .accounts_api import AccountsApi
 from .api_client import ApiClient
 from .collection_api import CollectionApi
 from .config import AppConfig, load_config
@@ -22,6 +23,7 @@ from .theme import apply_theme
 from .token_store import TokenStore
 
 __all__ = [
+    "AccountsApi",
     "ApiClient",
     "ApiError",
     "AppConfig",

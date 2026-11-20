@@ -1,0 +1,614 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  schemas  = ["accounts"]
+}
+
+enum AccountType {
+  ASSET
+  LIABILITY
+  EQUITY
+  INCOME
+  EXPENSE
+
+  @@schema("accounts")
+}
+
+enum NormalBalance {
+  DEBIT
+  CREDIT
+
+  @@schema("accounts")
+}
+
+enum FiscalYearStatus {
+  OPEN
+  CLOSED
+
+  @@schema("accounts")
+}
+
+enum FiscalPeriodStatus {
+  OPEN
+  SOFT_LOCK
+  LOCKED
+
+  @@schema("accounts")
+}
+
+enum JournalEntryStatus {
+  DRAFT
+  POSTED
+  REVERSED
+
+  @@schema("accounts")
+}
+
+enum SupplierBillStatus {
+  DRAFT
+  APPROVED
+  PARTIALLY_PAID
+  PAID
+  CANCELLED
+
+  @@schema("accounts")
+}
+
+enum AdjustmentType {
+  ADVANCE
+  FERTILIZER_LOAN
+  DEDUCTION
+  BONUS
+
+  @@schema("accounts")
+}
+
+enum AdjustmentStatus {
+  OPEN
+  RECOVERED
+  CANCELLED
+
+  @@schema("accounts")
+}
+
+enum WageComponentType {
+  EARNING
+  DEDUCTION
+
+  @@schema("accounts")
+}
+
+enum PayrollRunType {
+  MONTHLY
+  WEEKLY
+  DAILY
+
+  @@schema("accounts")
+}
+
+enum PayrollRunStatus {
+  DRAFT
+  CALCULATED
+  APPROVED
+  PAID
+  CANCELLED
+
+  @@schema("accounts")
+}
+
+enum PaymentBatchType {
+  SUPPLIER
+  WAGES
+  OTHER
+
+  @@schema("accounts")
+}
+
+enum PaymentMethod {
+  BANK_FILE
+  BANK_TRANSFER
+  CASH
+  CHEQUE
+
+  @@schema("accounts")
+}
+
+enum PaymentStatus {
+  PENDING
+  APPROVED
+  PAID
+  FAILED
+  CANCELLED
+
+  @@schema("accounts")
+}
+
+enum ReconciliationStatus {
+  OPEN
+  MATCHED
+  COMPLETE
+
+  @@schema("accounts")
+}
+
+model FiscalYear {
+  id        String           @id @default(uuid(7)) @db.Uuid
+  name      String           @unique @db.Text
+  startDate DateTime         @map("start_date") @db.Date
+  endDate   DateTime         @map("end_date") @db.Date
+  status    FiscalYearStatus @default(OPEN)
+  createdAt DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@map("fiscal_years")
+  @@schema("accounts")
+}
+
+model FiscalPeriod {
+  id           String             @id @default(uuid(7)) @db.Uuid
+  fiscalYearId String             @map("fiscal_year_id") @db.Uuid
+  name         String             @db.Text
+  startDate    DateTime           @map("start_date") @db.Date
+  endDate      DateTime           @map("end_date") @db.Date
+  status       FiscalPeriodStatus @default(OPEN)
+  closedAt     DateTime?          @map("closed_at") @db.Timestamptz(6)
+  closedBy     String?            @map("closed_by") @db.Uuid
+  createdAt    DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime           @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@unique([fiscalYearId, name])
+  @@index([startDate, endDate])
+  @@map("fiscal_periods")
+  @@schema("accounts")
+}
+
+model Account {
+  id                   String        @id @default(uuid(7)) @db.Uuid
+  code                 String        @unique @db.Text
+  name                 String        @db.Text
+  accountType          AccountType   @map("account_type")
+  normalBalance        NormalBalance @map("normal_balance")
+  parentId             String?       @map("parent_id") @db.Uuid
+  isPostable           Boolean       @default(true) @map("is_postable")
+  isControl            Boolean       @default(false) @map("is_control")
+  partyType            String?       @map("party_type") @db.Text
+  active               Boolean       @default(true)
+  statement            String?       @db.Text
+  sectionId            String?       @map("section_id") @db.Text
+  sortOrder            Int           @default(0) @map("sort_order")
+  cashFlowCategory     String?       @map("cash_flow_category") @db.Text
+  isCashAccount        Boolean       @default(false) @map("is_cash_account")
+  allowManualPosting   Boolean       @default(true) @map("allow_manual_posting")
+  deactivatedAt        DateTime?     @map("deactivated_at") @db.Timestamptz(6)
+  openingBalanceEntryId String?      @map("opening_balance_entry_id") @db.Uuid
+  version              Int           @default(0)
+  createdAt            DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt            DateTime      @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([parentId])
+  @@index([statement, sectionId])
+  @@map("accounts")
+  @@schema("accounts")
+}
+
+model JournalEntry {
+  id             String            @id @default(uuid(7)) @db.Uuid
+  entryNo        String            @unique @map("entry_no") @db.Text
+  entryDate      DateTime          @map("entry_date") @db.Date
+  periodId       String            @map("period_id") @db.Uuid
+  description    String            @db.Text
+  sourceType     String            @default("MANUAL") @map("source_type") @db.Text
+  sourceId       String?           @map("source_id") @db.Uuid
+  status         JournalEntryStatus @default(DRAFT)
+  reversalOfId   String?           @map("reversal_of_id") @db.Uuid
+  reversalReason String?           @map("reversal_reason") @db.Text
+  postedBy       String?           @map("posted_by") @db.Uuid
+  postedAt       DateTime?         @map("posted_at") @db.Timestamptz(6)
+  approvedBy     String?           @map("approved_by") @db.Uuid
+  approvedAt     DateTime?         @map("approved_at") @db.Timestamptz(6)
+  idempotencyKey String            @unique @map("idempotency_key") @db.Text
+  currency       String            @default("LKR") @db.Text
+  createdAt      DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime          @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([entryDate])
+  @@index([periodId, status])
+  @@index([sourceType, sourceId])
+  @@map("journal_entries")
+  @@schema("accounts")
+}
+
+model JournalLine {
+  id           String   @id @default(uuid(7)) @db.Uuid
+  entryId      String   @map("entry_id") @db.Uuid
+  accountId    String   @map("account_id") @db.Uuid
+  debit        Decimal  @default(0) @db.Decimal(18, 2)
+  credit       Decimal  @default(0) @db.Decimal(18, 2)
+  partyType    String?  @map("party_type") @db.Text
+  partyId      String?  @map("party_id") @db.Uuid
+  costCentreId String?  @map("cost_centre_id") @db.Uuid
+  memo         String?  @db.Text
+  lineNo       Int      @map("line_no")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([entryId])
+  @@index([accountId, partyId])
+  @@map("journal_lines")
+  @@schema("accounts")
+}
+
+model AccountPeriodBalance {
+  id            String   @id @default(uuid(7)) @db.Uuid
+  accountId     String   @map("account_id") @db.Uuid
+  periodId      String   @map("period_id") @db.Uuid
+  partyId       String?  @map("party_id") @db.Uuid
+  openingBalance Decimal @default(0) @map("opening_balance") @db.Decimal(18, 2)
+  periodDebit   Decimal  @default(0) @map("period_debit") @db.Decimal(18, 2)
+  periodCredit  Decimal  @default(0) @map("period_credit") @db.Decimal(18, 2)
+  closingBalance Decimal @default(0) @map("closing_balance") @db.Decimal(18, 2)
+  updatedAt     DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@unique([accountId, periodId, partyId])
+  @@map("account_period_balances")
+  @@schema("accounts")
+}
+
+model TeaRate {
+  id           String   @id @default(uuid(7)) @db.Uuid
+  grade        String   @db.Text
+  ratePerKg    Decimal  @map("rate_per_kg") @db.Decimal(12, 2)
+  effectiveFrom DateTime @map("effective_from") @db.Date
+  effectiveTo  DateTime? @map("effective_to") @db.Date
+  approver     String?  @db.Uuid
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@unique([grade, effectiveFrom])
+  @@index([grade, effectiveFrom, effectiveTo])
+  @@map("tea_rates")
+  @@schema("accounts")
+}
+
+model CollectedTotal {
+  id            String   @id @default(uuid(7)) @db.Uuid
+  eventId       String   @unique @map("event_id") @db.Uuid
+  supplierId    String   @map("supplier_id") @db.Uuid
+  collectionDate DateTime @map("collection_date") @db.Date
+  totalNetKg    Decimal  @map("total_net_kg") @db.Decimal(12, 3)
+  grade         String?  @db.Text
+  dailyTotalId  String?  @map("daily_total_id") @db.Uuid
+  processed     Boolean  @default(false)
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([supplierId, collectionDate])
+  @@index([processed])
+  @@map("collected_totals")
+  @@schema("accounts")
+}
+
+model AttendanceDay {
+  id              String   @id @default(uuid(7)) @db.Uuid
+  eventId         String   @unique @map("event_id") @db.Uuid
+  personId        String   @map("person_id") @db.Uuid
+  workDate        DateTime @map("work_date") @db.Date
+  status          String   @db.Text
+  workedMinutes   Int      @default(0) @map("worked_minutes")
+  overtimeMinutes Int      @default(0) @map("overtime_minutes")
+  approved        Boolean  @default(false)
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([personId, workDate])
+  @@index([workDate, approved])
+  @@map("attendance_days")
+  @@schema("accounts")
+}
+
+model SupplierAdjustment {
+  id             String          @id @default(uuid(7)) @db.Uuid
+  supplierId     String          @map("supplier_id") @db.Uuid
+  adjustmentType AdjustmentType  @map("adjustment_type")
+  amount         Decimal         @db.Decimal(18, 2)
+  adjustmentDate DateTime        @map("adjustment_date") @db.Date
+  description    String?         @db.Text
+  recoveredAmount Decimal        @default(0) @map("recovered_amount") @db.Decimal(18, 2)
+  status         AdjustmentStatus @default(OPEN)
+  createdAt      DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([supplierId, status])
+  @@map("supplier_adjustments")
+  @@schema("accounts")
+}
+
+model SupplierBill {
+  id              String            @id @default(uuid(7)) @db.Uuid
+  supplierId      String            @map("supplier_id") @db.Uuid
+  periodFrom      DateTime          @map("period_from") @db.Date
+  periodTo        DateTime          @map("period_to") @db.Date
+  totalKg         Decimal           @default(0) @map("total_kg") @db.Decimal(12, 3)
+  grossAmount     Decimal           @default(0) @map("gross_amount") @db.Decimal(18, 2)
+  deductionsAmount Decimal          @default(0) @map("deductions_amount") @db.Decimal(18, 2)
+  netPayable      Decimal           @default(0) @map("net_payable") @db.Decimal(18, 2)
+  status          SupplierBillStatus @default(DRAFT)
+  journalEntryId  String?           @map("journal_entry_id") @db.Uuid
+  approvedBy      String?           @map("approved_by") @db.Uuid
+  approvedAt      DateTime?         @map("approved_at") @db.Timestamptz(6)
+  idempotencyKey  String            @unique @map("idempotency_key") @db.Text
+  createdAt       DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime          @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([supplierId, periodTo])
+  @@map("supplier_bills")
+  @@schema("accounts")
+}
+
+model SupplierBillLine {
+  id            String   @id @default(uuid(7)) @db.Uuid
+  billId        String   @map("bill_id") @db.Uuid
+  collectionDate DateTime @map("collection_date") @db.Date
+  totalNetKg    Decimal  @map("total_net_kg") @db.Decimal(12, 3)
+  ratePerKg     Decimal  @map("rate_per_kg") @db.Decimal(12, 2)
+  amount        Decimal  @db.Decimal(18, 2)
+  dailyTotalId  String   @map("daily_total_id") @db.Uuid
+
+  @@unique([billId, dailyTotalId])
+  @@map("supplier_bill_lines")
+  @@schema("accounts")
+}
+
+model WageComponent {
+  id            String           @id @default(uuid(7)) @db.Uuid
+  code          String           @unique @db.Text
+  name          String           @db.Text
+  componentType WageComponentType @map("component_type")
+  taxable       Boolean          @default(false)
+  formula       Json?
+  active        Boolean          @default(true)
+  createdAt     DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@map("wage_components")
+  @@schema("accounts")
+}
+
+model PayrollRun {
+  id             String          @id @default(uuid(7)) @db.Uuid
+  periodFrom     DateTime        @map("period_from") @db.Date
+  periodTo       DateTime        @map("period_to") @db.Date
+  runType        PayrollRunType  @map("run_type")
+  status         PayrollRunStatus @default(DRAFT)
+  grossTotal     Decimal         @default(0) @map("gross_total") @db.Decimal(18, 2)
+  deductionTotal Decimal         @default(0) @map("deduction_total") @db.Decimal(18, 2)
+  netTotal       Decimal         @default(0) @map("net_total") @db.Decimal(18, 2)
+  employerCost   Decimal         @default(0) @map("employer_cost") @db.Decimal(18, 2)
+  approvedBy     String?         @map("approved_by") @db.Uuid
+  approvedAt     DateTime?       @map("approved_at") @db.Timestamptz(6)
+  journalEntryId String?         @map("journal_entry_id") @db.Uuid
+  idempotencyKey String          @unique @map("idempotency_key") @db.Text
+  createdAt      DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime        @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([periodFrom, periodTo])
+  @@map("payroll_runs")
+  @@schema("accounts")
+}
+
+model PayrollItem {
+  id              String  @id @default(uuid(7)) @db.Uuid
+  runId           String  @map("run_id") @db.Uuid
+  personId        String  @map("person_id") @db.Uuid
+  daysWorked      Decimal @default(0) @map("days_worked") @db.Decimal(8, 2)
+  overtimeHours   Decimal @default(0) @map("overtime_hours") @db.Decimal(8, 2)
+  grossAmount     Decimal @default(0) @map("gross_amount") @db.Decimal(18, 2)
+  epfEmployee     Decimal @default(0) @map("epf_employee") @db.Decimal(18, 2)
+  epfEmployer     Decimal @default(0) @map("epf_employer") @db.Decimal(18, 2)
+  etf             Decimal @default(0) @db.Decimal(18, 2)
+  otherDeductions Decimal @default(0) @map("other_deductions") @db.Decimal(18, 2)
+  netPay          Decimal @default(0) @map("net_pay") @db.Decimal(18, 2)
+  paymentStatus   String  @default("PENDING") @map("payment_status") @db.Text
+  bankSnapshotMasked String? @map("bank_snapshot_masked") @db.Text
+
+  @@unique([runId, personId])
+  @@index([runId])
+  @@map("payroll_items")
+  @@schema("accounts")
+}
+
+model PayrollItemLine {
+  id          String  @id @default(uuid(7)) @db.Uuid
+  itemId      String  @map("item_id") @db.Uuid
+  componentId String  @map("component_id") @db.Uuid
+  amount      Decimal @db.Decimal(18, 2)
+
+  @@index([itemId])
+  @@map("payroll_item_lines")
+  @@schema("accounts")
+}
+
+model PaymentBatch {
+  id            String          @id @default(uuid(7)) @db.Uuid
+  batchType     PaymentBatchType @map("batch_type")
+  paymentMethod PaymentMethod   @map("payment_method")
+  totalAmount   Decimal         @map("total_amount") @db.Decimal(18, 2)
+  status        String          @default("DRAFT") @db.Text
+  reference     String?         @db.Text
+  createdBy     String?         @map("created_by") @db.Uuid
+  approvedBy    String?         @map("approved_by") @db.Uuid
+  approvedAt    DateTime?       @map("approved_at") @db.Timestamptz(6)
+  fileObjectKey String?         @map("file_object_key") @db.Text
+  createdAt     DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime        @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([status])
+  @@map("payment_batches")
+  @@schema("accounts")
+}
+
+model Payment {
+  id             String        @id @default(uuid(7)) @db.Uuid
+  batchId        String?       @map("batch_id") @db.Uuid
+  payeeType      String        @map("payee_type") @db.Text
+  payeeId        String        @map("payee_id") @db.Uuid
+  amount         Decimal       @db.Decimal(18, 2)
+  paymentMethod  PaymentMethod @default(BANK_TRANSFER) @map("payment_method")
+  reference      String?       @db.Text
+  billId         String?       @map("bill_id") @db.Uuid
+  payrollItemId  String?       @map("payroll_item_id") @db.Uuid
+  status         PaymentStatus @default(PENDING)
+  paidDate       DateTime?     @map("paid_date") @db.Date
+  paidBy         String?       @map("paid_by") @db.Uuid
+  journalEntryId String?       @map("journal_entry_id") @db.Uuid
+  idempotencyKey String        @unique @map("idempotency_key") @db.Text
+  createdAt      DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime      @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([batchId])
+  @@index([payeeType, payeeId])
+  @@map("payments")
+  @@schema("accounts")
+}
+
+model CompanyBankAccount {
+  id               String   @id @default(uuid(7)) @db.Uuid
+  bankName         String   @map("bank_name") @db.Text
+  branch           String?  @db.Text
+  accountNumberEnc    String @map("account_number_enc") @db.Text
+  accountNumberMasked String @map("account_number_masked") @db.Text
+  ledgerAccountId     String @map("ledger_account_id") @db.Uuid
+  active           Boolean  @default(true)
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@map("company_bank_accounts")
+  @@schema("accounts")
+}
+
+model BankReconciliation {
+  id              String               @id @default(uuid(7)) @db.Uuid
+  bankAccountId   String               @map("bank_account_id") @db.Uuid
+  statementDate   DateTime             @map("statement_date") @db.Date
+  statementBalance Decimal             @map("statement_balance") @db.Decimal(18, 2)
+  status          ReconciliationStatus @default(OPEN)
+  createdAt       DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime             @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([bankAccountId, statementDate])
+  @@map("bank_reconciliations")
+  @@schema("accounts")
+}
+
+model BankStatementLine {
+  id                  String   @id @default(uuid(7)) @db.Uuid
+  reconciliationId    String   @map("reconciliation_id") @db.Uuid
+  statementLineDate   DateTime @map("statement_line_date") @db.Date
+  description         String   @db.Text
+  amount              Decimal  @db.Decimal(18, 2)
+  direction           String   @db.Text
+  matchedJournalLineId String? @map("matched_journal_line_id") @db.Uuid
+
+  @@index([reconciliationId])
+  @@map("bank_statement_lines")
+  @@schema("accounts")
+}
+
+model PostingRule {
+  id              String   @id @default(uuid(7)) @db.Uuid
+  eventType       String   @map("event_type") @db.Text
+  version         Int      @default(1)
+  effectiveFrom   DateTime @map("effective_from") @db.Date
+  debitAccountId  String   @map("debit_account_id") @db.Uuid
+  creditAccountId String   @map("credit_account_id") @db.Uuid
+  conditionJson   Json?    @map("condition_json")
+  status          String   @default("ACTIVE") @db.Text
+  approver        String?  @db.Uuid
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@unique([eventType, version, effectiveFrom])
+  @@map("posting_rules")
+  @@schema("accounts")
+}
+
+model ReportSection {
+  id        String   @id @default(uuid(7)) @db.Uuid
+  code      String   @unique @db.Text
+  statement String   @db.Text
+  name      String   @db.Text
+  parentCode String? @map("parent_code") @db.Text
+  sortOrder Int      @default(0) @map("sort_order")
+  sign      Int      @default(1)
+  isSubtotal Boolean @default(false) @map("is_subtotal")
+  formula   String?  @db.Text
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([statement, parentCode])
+  @@map("report_sections")
+  @@schema("accounts")
+}
+
+model Party {
+  id          String   @id @default(uuid(7)) @db.Uuid
+  partyType   String   @map("party_type") @db.Text
+  externalId  String   @map("external_id") @db.Uuid
+  displayName String   @map("display_name") @db.Text
+  code        String?  @db.Text
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@unique([partyType, externalId])
+  @@map("parties")
+  @@schema("accounts")
+}
+
+model Budget {
+  id             String   @id @default(uuid(7)) @db.Uuid
+  name           String   @db.Text
+  fiscalPeriodId String   @map("fiscal_period_id") @db.Uuid
+  totalAmount    Decimal  @map("total_amount") @db.Decimal(18, 2)
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@map("budgets")
+  @@schema("accounts")
+}
+
+model YearEndClosing {
+  id           String   @id @default(uuid(7)) @db.Uuid
+  fiscalYearId String   @map("fiscal_year_id") @db.Uuid
+  journalEntryId String @map("journal_entry_id") @db.Uuid
+  profitForYear Decimal @map("profit_for_year") @db.Decimal(18, 2)
+  createdBy    String   @map("created_by") @db.Uuid
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@unique([fiscalYearId])
+  @@map("year_end_closings")
+  @@schema("accounts")
+}
+
+model AccountsAuditLog {
+  id         String   @id @default(uuid(7)) @db.Uuid
+  actorId    String?  @map("actor_id") @db.Uuid
+  action     String   @db.Text
+  entityType String   @map("entity_type") @db.Text
+  entityId   String   @map("entity_id") @db.Text
+  metadata   Json?
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([entityType, entityId])
+  @@map("accounts_audit_logs")
+  @@schema("accounts")
+}
+
+model OutboxEvent {
+  id        String   @id @db.Uuid
+  envelope  Json
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@map("outbox_events")
+  @@schema("accounts")
+}
+
+model ProcessedEvent {
+  id        String   @id @db.Uuid
+  type      String   @db.Text
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@map("processed_events")
+  @@schema("accounts")
+}

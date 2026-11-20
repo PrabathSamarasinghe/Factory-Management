@@ -37,6 +37,18 @@ const validateAttendanceDayPayload = ajv.compile(
 const validateSmsStatusPayload = ajv.compile(
   loadJson('../../event-contracts/schemas/sms.status.v1.json'),
 );
+const validateAccountCreatedPayload = ajv.compile(
+  loadJson('../../event-contracts/schemas/account.created.v1.json'),
+);
+const validateJournalPostedPayload = ajv.compile(
+  loadJson('../../event-contracts/schemas/journal.posted.v1.json'),
+);
+const validatePaymentPaidPayload = ajv.compile(
+  loadJson('../../event-contracts/schemas/payment.paid.v1.json'),
+);
+const validatePayrollApprovedPayload = ajv.compile(
+  loadJson('../../event-contracts/schemas/payroll.approved.v1.json'),
+);
 
 function expectValid(validate: ReturnType<typeof ajv.compile>, value: unknown): void {
   const valid = validate(value);
@@ -247,6 +259,114 @@ describe('event contracts', () => {
       }),
     );
     expect(validateSmsStatusPayload({ ...payload, relatedId: 'not-a-uuid' })).toBe(false);
+  });
+
+  it('validates account.created without account numbers or PII', () => {
+    const payload = {
+      accountId: uuidv7(),
+      code: '1110',
+      name: 'Bank - main account',
+      accountType: 'ASSET',
+    };
+
+    expectValid(validateAccountCreatedPayload, payload);
+    expectValid(
+      validateEventEnvelope,
+      createEvent({
+        type: 'account.created',
+        payload,
+        actor: { type: 'USER', id: uuidv7() },
+        producer: 'accounts-service',
+      }),
+    );
+    expect(validateAccountCreatedPayload({ ...payload, accountType: 'ASSET_' })).toBe(false);
+    expect(validateAccountCreatedPayload({ ...payload, bankAccountNumber: '0001234567' })).toBe(
+      false,
+    );
+  });
+
+  it('validates journal.posted with decimal-string totals and nullable sourceId', () => {
+    const payload = {
+      journalEntryId: uuidv7(),
+      entryNo: '42',
+      entryDate: '2026-11-20',
+      periodId: uuidv7(),
+      debitTotal: '12500.00',
+      creditTotal: '12500.00',
+      sourceType: 'COLLECTION',
+      sourceId: uuidv7(),
+    };
+
+    expectValid(validateJournalPostedPayload, payload);
+    expectValid(validateJournalPostedPayload, { ...payload, sourceId: null });
+    expectValid(
+      validateEventEnvelope,
+      createEvent({
+        type: 'journal.posted',
+        payload,
+        actor: { type: 'SERVICE', id: uuidv7() },
+        producer: 'accounts-service',
+      }),
+    );
+    expect(validateJournalPostedPayload({ ...payload, debitTotal: 12500 })).toBe(false);
+    expect(validateJournalPostedPayload({ ...payload, entryDate: '2026-11-20T00:00:00Z' })).toBe(
+      false,
+    );
+    expect(validateJournalPostedPayload({ ...payload, employeeBankDetails: 'hidden' })).toBe(false);
+  });
+
+  it('validates payment.paid with a payee id and no bank details', () => {
+    const payload = {
+      paymentId: uuidv7(),
+      payeeType: 'SUPPLIER',
+      payeeId: uuidv7(),
+      amount: '2500.50',
+      paidDate: '2026-11-20T10:00:00.000Z',
+      journalEntryId: uuidv7(),
+    };
+
+    expectValid(validatePaymentPaidPayload, payload);
+    expectValid(
+      validateEventEnvelope,
+      createEvent({
+        type: 'payment.paid',
+        payload,
+        actor: { type: 'USER', id: uuidv7() },
+        producer: 'accounts-service',
+      }),
+    );
+    expect(validatePaymentPaidPayload({ ...payload, amount: 2500.5 })).toBe(false);
+    expect(validatePaymentPaidPayload({ ...payload, payeeId: 'not-a-uuid' })).toBe(false);
+    expect(validatePaymentPaidPayload({ ...payload, bankAccountNumber: '0001234567' })).toBe(false);
+  });
+
+  it('validates payroll.approved with decimal-string totals and no employee PII', () => {
+    const payload = {
+      payrollRunId: uuidv7(),
+      periodFrom: '2026-11-01',
+      periodTo: '2026-11-30',
+      grossTotal: '150000.00',
+      deductionTotal: '22500.00',
+      netTotal: '127500.00',
+      journalEntryId: uuidv7(),
+    };
+
+    expectValid(validatePayrollApprovedPayload, payload);
+    expectValid(
+      validateEventEnvelope,
+      createEvent({
+        type: 'payroll.approved',
+        payload,
+        actor: { type: 'USER', id: uuidv7() },
+        producer: 'accounts-service',
+      }),
+    );
+    expect(validatePayrollApprovedPayload({ ...payload, periodFrom: '2026-11-01T00:00:00Z' })).toBe(
+      false,
+    );
+    expect(validatePayrollApprovedPayload({ ...payload, employeeBankDetails: 'hidden' })).toBe(
+      false,
+    );
   });
 
   it('rejects malformed events', () => {

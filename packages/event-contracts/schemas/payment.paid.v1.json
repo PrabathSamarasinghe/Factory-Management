@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.galatura.local/events/payment.paid.v1.json",
+  "title": "payment.paid payload v1",
+  "$comment": "Payload only. Wrapped by event-envelope.v1.json. Payee identifier and amount only; never bank account numbers, employee bank details, PII or secrets.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["paymentId", "payeeType", "payeeId", "amount", "paidDate", "journalEntryId"],
+  "properties": {
+    "paymentId": { "type": "string", "format": "uuid" },
+    "payeeType": { "type": "string", "minLength": 1, "maxLength": 40 },
+    "payeeId": { "type": "string", "format": "uuid" },
+    "amount": { "type": "string", "pattern": "^\\d+(\\.\\d{1,2})?$" },
+    "paidDate": { "type": "string", "format": "date-time" },
+    "journalEntryId": { "type": "string", "format": "uuid" }
+  }
+}

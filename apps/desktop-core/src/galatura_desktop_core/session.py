@@ -7,6 +7,7 @@ from typing import Any
 
 from PySide6.QtCore import QObject, Signal
 
+from .accounts_api import AccountsApi
 from .api_client import ApiClient, decode_jwt_payload
 from .collection_api import CollectionApi
 from .config import AppConfig, load_config
@@ -35,6 +36,7 @@ class SessionManager(QObject):
         self.fleet = FleetApi(self.client)
         self.collection = CollectionApi(self.client)
         self.notification = NotificationApi(self.client)
+        self.accounts = AccountsApi(self.client)
         self.profile: dict[str, Any] = {}
         self.roles: list[str] = []
         self.permissions: list[str] = []

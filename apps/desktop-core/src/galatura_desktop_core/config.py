@@ -48,6 +48,10 @@ class AppConfig:
     def notification_base(self) -> str:
         return f"{self.gateway_url.rstrip('/')}/api/v1/notification"
 
+    @property
+    def accounts_base(self) -> str:
+        return f"{self.gateway_url.rstrip('/')}/api/v1/accounts"
+
 
 def load_config() -> AppConfig:
     return AppConfig(

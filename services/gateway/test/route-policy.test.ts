@@ -31,6 +31,30 @@ describe('RoutePolicyService (Tasks 1.5 & 1.8 - C7 Lockdown)', () => {
     );
   });
 
+  it('allows C5 Accounts app to access accounts routes while C7 remains blocked', () => {
+    const accountantPrincipal: any = {
+      subject: 'accountant-123',
+      roles: ['ACCOUNTANT'],
+      permissions: ['coa:read', 'ledger:read', 'report:read'],
+      permissionsVersion: 1,
+      scope: 'ALL',
+      audience: 'galatura-services',
+    };
+
+    expect(() =>
+      policy.evaluatePolicy('/api/v1/accounts', 'C5', accountantPrincipal),
+    ).not.toThrow();
+    expect(() =>
+      policy.evaluatePolicy('/api/v1/accounts/accounts/tree', 'C5', accountantPrincipal),
+    ).not.toThrow();
+    expect(() => policy.evaluatePolicy('/api/v1/accounts/journal-entries', 'C5')).not.toThrow();
+
+    expect(() => policy.evaluatePolicy('/api/v1/accounts', 'C7')).toThrow(ForbiddenError);
+    expect(() =>
+      policy.evaluatePolicy('/api/v1/accounts/accounts/tree', 'C7', accountantPrincipal),
+    ).toThrow(ForbiddenError);
+  });
+
   it('blocks principal having MONITOR role from accessing non-monitor routes', () => {
     const monitorPrincipal: any = {
       subject: 'user-123',

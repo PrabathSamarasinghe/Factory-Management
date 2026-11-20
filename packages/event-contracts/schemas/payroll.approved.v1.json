@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.galatura.local/events/payroll.approved.v1.json",
+  "title": "payroll.approved payload v1",
+  "$comment": "Payload only. Wrapped by event-envelope.v1.json. Run identifiers and totals only; never employee bank details, PII or secrets.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "payrollRunId",
+    "periodFrom",
+    "periodTo",
+    "grossTotal",
+    "deductionTotal",
+    "netTotal",
+    "journalEntryId"
+  ],
+  "properties": {
+    "payrollRunId": { "type": "string", "format": "uuid" },
+    "periodFrom": { "type": "string", "format": "date" },
+    "periodTo": { "type": "string", "format": "date" },
+    "grossTotal": { "type": "string", "pattern": "^\\d+(\\.\\d{1,2})?$" },
+    "deductionTotal": { "type": "string", "pattern": "^\\d+(\\.\\d{1,2})?$" },
+    "netTotal": { "type": "string", "pattern": "^\\d+(\\.\\d{1,2})?$" },
+    "journalEntryId": { "type": "string", "format": "uuid" }
+  }
+}

@@ -68,7 +68,14 @@ describe('GatewayMiddleware & Security Attack Tests (Tasks 1.5 & 1.7)', () => {
       nextCalled = true;
     };
 
-    return { req, res, getStatus: () => statusCode, getBody: () => jsonBody, isNext: () => nextCalled, resHeaders };
+    return {
+      req,
+      res,
+      getStatus: () => statusCode,
+      getBody: () => jsonBody,
+      isNext: () => nextCalled,
+      resHeaders,
+    };
   }
 
   it('sets standard OWASP security headers', async () => {
@@ -82,7 +89,9 @@ describe('GatewayMiddleware & Security Attack Tests (Tasks 1.5 & 1.7)', () => {
   });
 
   it('rejects path traversal attempts with 400', async () => {
-    const { req, res, getStatus, getBody, isNext } = mockHttp({ url: '/api/v1/identity/../../etc/passwd' });
+    const { req, res, getStatus, getBody, isNext } = mockHttp({
+      url: '/api/v1/identity/../../etc/passwd',
+    });
     await middleware.use(req, res, () => {});
 
     expect(getStatus()).toBe(400);
@@ -91,7 +100,9 @@ describe('GatewayMiddleware & Security Attack Tests (Tasks 1.5 & 1.7)', () => {
   });
 
   it('rejects null byte injection with 400', async () => {
-    const { req, res, getStatus, getBody, isNext } = mockHttp({ url: '/api/v1/identity/users\0admin' });
+    const { req, res, getStatus, getBody, isNext } = mockHttp({
+      url: '/api/v1/identity/users\0admin',
+    });
     await middleware.use(req, res, () => {});
 
     expect(getStatus()).toBe(400);
@@ -133,7 +144,13 @@ describe('GatewayMiddleware & Security Attack Tests (Tasks 1.5 & 1.7)', () => {
     const token = jwt.sign(
       { sub: 'user-1', roles: ['ADMIN'], permissions: ['user:*'] },
       privateKey,
-      { algorithm: 'RS256', keyid: 'test-key-1', audience: 'galatura-services', issuer: 'galatura-identity', expiresIn: 300 },
+      {
+        algorithm: 'RS256',
+        keyid: 'test-key-1',
+        audience: 'galatura-services',
+        issuer: 'galatura-identity',
+        expiresIn: 300,
+      },
     );
 
     // Tamper with signature
@@ -155,7 +172,13 @@ describe('GatewayMiddleware & Security Attack Tests (Tasks 1.5 & 1.7)', () => {
     const expiredToken = jwt.sign(
       { sub: 'user-1', roles: ['ADMIN'], permissions: ['user:*'] },
       privateKey,
-      { algorithm: 'RS256', keyid: 'test-key-1', audience: 'galatura-services', issuer: 'galatura-identity', expiresIn: -120 },
+      {
+        algorithm: 'RS256',
+        keyid: 'test-key-1',
+        audience: 'galatura-services',
+        issuer: 'galatura-identity',
+        expiresIn: -120,
+      },
     );
 
     const { req, res, getStatus, getBody } = mockHttp({
@@ -180,7 +203,13 @@ describe('GatewayMiddleware & Security Attack Tests (Tasks 1.5 & 1.7)', () => {
     const forgedToken = jwt.sign(
       { sub: 'admin', roles: ['ADMIN'], permissions: ['*'] },
       attackerKey.privateKey,
-      { algorithm: 'RS256', keyid: 'attacker-key', audience: 'galatura-services', issuer: 'galatura-identity', expiresIn: 300 },
+      {
+        algorithm: 'RS256',
+        keyid: 'attacker-key',
+        audience: 'galatura-services',
+        issuer: 'galatura-identity',
+        expiresIn: 300,
+      },
     );
 
     const { req, res, getStatus, getBody } = mockHttp({
@@ -196,9 +225,20 @@ describe('GatewayMiddleware & Security Attack Tests (Tasks 1.5 & 1.7)', () => {
 
   it('passes valid JWT and injects downstream headers', async () => {
     const validToken = jwt.sign(
-      { sub: 'user-123', username: 'prabath', roles: ['ADMIN'], permissions: ['user:read', 'role:read'] },
+      {
+        sub: 'user-123',
+        username: 'prabath',
+        roles: ['ADMIN'],
+        permissions: ['user:read', 'role:read'],
+      },
       privateKey,
-      { algorithm: 'RS256', keyid: 'test-key-1', audience: 'galatura-services', issuer: 'galatura-identity', expiresIn: 300 },
+      {
+        algorithm: 'RS256',
+        keyid: 'test-key-1',
+        audience: 'galatura-services',
+        issuer: 'galatura-identity',
+        expiresIn: 300,
+      },
     );
 
     const { req, res } = mockHttp({
@@ -216,5 +256,67 @@ describe('GatewayMiddleware & Security Attack Tests (Tasks 1.5 & 1.7)', () => {
     expect(req.headers['x-username']).toBe('prabath');
     expect(JSON.parse(req.headers['x-roles'])).toEqual(['ADMIN']);
     expect(JSON.parse(req.headers['x-permissions'])).toEqual(['user:read', 'role:read']);
+  });
+
+  it('allows a signed C5 accountant token on accounts routes', async () => {
+    const token = jwt.sign(
+      {
+        sub: 'accountant-123',
+        username: 'accountant',
+        roles: ['ACCOUNTANT'],
+        permissions: ['coa:read', 'ledger:read'],
+      },
+      privateKey,
+      {
+        algorithm: 'RS256',
+        keyid: 'test-key-1',
+        audience: 'galatura-services',
+        issuer: 'galatura-identity',
+        expiresIn: 300,
+      },
+    );
+
+    const { req, res, getStatus } = mockHttp({
+      url: '/api/v1/accounts/accounts/tree',
+      headers: { authorization: `Bearer ${token}`, 'x-client-app': 'C5' },
+    });
+
+    let nextCalled = false;
+    await middleware.use(req, res, () => {
+      nextCalled = true;
+    });
+
+    expect(nextCalled).toBe(true);
+    expect(getStatus()).toBe(200);
+    expect(req.headers['x-user-id']).toBe('accountant-123');
+    expect(JSON.parse(req.headers['x-roles'])).toEqual(['ACCOUNTANT']);
+  });
+
+  it('blocks a signed C7 token from accounts routes with 403', async () => {
+    const token = jwt.sign(
+      { sub: 'monitor-123', roles: ['MONITOR'], permissions: ['monitor:read'] },
+      privateKey,
+      {
+        algorithm: 'RS256',
+        keyid: 'test-key-1',
+        audience: 'galatura-services',
+        issuer: 'galatura-identity',
+        expiresIn: 300,
+      },
+    );
+
+    const { req, res, getStatus, getBody } = mockHttp({
+      url: '/api/v1/accounts/accounts/tree',
+      headers: { authorization: `Bearer ${token}`, 'x-client-app': 'C7' },
+    });
+
+    let nextCalled = false;
+    await middleware.use(req, res, () => {
+      nextCalled = true;
+    });
+
+    expect(nextCalled).toBe(false);
+    expect(getStatus()).toBe(403);
+    expect(getBody().error.code).toBe('FORBIDDEN');
   });
 });

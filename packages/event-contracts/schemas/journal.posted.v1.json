@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.galatura.local/events/journal.posted.v1.json",
+  "title": "journal.posted payload v1",
+  "$comment": "Payload only. Wrapped by event-envelope.v1.json. Identifiers and decimal totals only; no party names, bank details, PII or secrets.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "journalEntryId",
+    "entryNo",
+    "entryDate",
+    "periodId",
+    "debitTotal",
+    "creditTotal",
+    "sourceType",
+    "sourceId"
+  ],
+  "properties": {
+    "journalEntryId": { "type": "string", "format": "uuid" },
+    "entryNo": { "type": "string", "minLength": 1, "maxLength": 40 },
+    "entryDate": { "type": "string", "format": "date" },
+    "periodId": { "type": "string", "format": "uuid" },
+    "debitTotal": { "type": "string", "pattern": "^\\d+(\\.\\d{1,2})?$" },
+    "creditTotal": { "type": "string", "pattern": "^\\d+(\\.\\d{1,2})?$" },
+    "sourceType": { "type": "string", "minLength": 1, "maxLength": 40 },
+    "sourceId": { "type": ["string", "null"], "format": "uuid" }
+  }
+}

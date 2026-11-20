@@ -106,6 +106,50 @@
       "consumers": ["accounts-service", "reporting-service"],
       "orderingKey": "personId",
       "since": "2026-11-18"
+    },
+    {
+      "type": "account.created",
+      "version": 1,
+      "status": "active",
+      "schema": "schemas/account.created.v1.json",
+      "owner": "accounts-service",
+      "producers": ["accounts-service"],
+      "consumers": ["realtime-service", "reporting-service"],
+      "orderingKey": "accountId",
+      "since": "2026-11-20"
+    },
+    {
+      "type": "journal.posted",
+      "version": 1,
+      "status": "active",
+      "schema": "schemas/journal.posted.v1.json",
+      "owner": "accounts-service",
+      "producers": ["accounts-service"],
+      "consumers": ["realtime-service", "reporting-service"],
+      "orderingKey": "journalEntryId",
+      "since": "2026-11-20"
+    },
+    {
+      "type": "payment.paid",
+      "version": 1,
+      "status": "active",
+      "schema": "schemas/payment.paid.v1.json",
+      "owner": "accounts-service",
+      "producers": ["accounts-service"],
+      "consumers": ["realtime-service", "reporting-service"],
+      "orderingKey": "paymentId",
+      "since": "2026-11-20"
+    },
+    {
+      "type": "payroll.approved",
+      "version": 1,
+      "status": "active",
+      "schema": "schemas/payroll.approved.v1.json",
+      "owner": "accounts-service",
+      "producers": ["accounts-service"],
+      "consumers": ["realtime-service", "reporting-service"],
+      "orderingKey": "payrollRunId",
+      "since": "2026-11-20"
     }
   ]
 }

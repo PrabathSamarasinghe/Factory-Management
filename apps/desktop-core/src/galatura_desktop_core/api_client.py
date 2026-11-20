@@ -122,7 +122,11 @@ class ApiClient:
             self._permissions = list(permissions or [])
 
     # ----------------------------------------------------------------- headers
-    def _headers(self, include_auth: bool) -> dict[str, str]:
+    def _headers(
+        self,
+        include_auth: bool,
+        extra_headers: Mapping[str, str] | None = None,
+    ) -> dict[str, str]:
         headers = {"x-client-app": self.config.client_app}
         if include_auth and self.access_token:
             headers["Authorization"] = f"Bearer {self.access_token}"
@@ -130,6 +134,8 @@ class ApiClient:
             headers["x-user-id"] = self._user_id
         if self._permissions:
             headers["x-permissions"] = json.dumps(self._permissions)
+        if extra_headers:
+            headers.update({str(key): str(value) for key, value in extra_headers.items()})
         return headers
 
     def _needs_refresh(self) -> bool:
@@ -176,8 +182,10 @@ class ApiClient:
         *,
         params: Mapping[str, Any] | None = None,
         json_body: Any = None,
+        headers: Mapping[str, str] | None = None,
         include_auth: bool = True,
         allow_refresh: bool = True,
+        raw_response: bool = False,
     ) -> Any:
         if include_auth and self._needs_refresh():
             self.refresh()
@@ -193,7 +201,7 @@ class ApiClient:
                 url,
                 params=clean_params,
                 json=json_body,
-                headers=self._headers(include_auth),
+                headers=self._headers(include_auth, headers),
                 timeout=self.config.request_timeout,
                 verify=self.config.verify_tls,
             )
@@ -208,13 +216,17 @@ class ApiClient:
                 path,
                 params=params,
                 json_body=json_body,
+                headers=headers,
                 include_auth=include_auth,
                 allow_refresh=False,
+                raw_response=raw_response,
             )
 
         if not response.ok:
             raise self._error_from_response(response)
 
+        if raw_response:
+            return response.content
         return self._json(response)
 
     def _json(self, response: requests.Response) -> Any:
