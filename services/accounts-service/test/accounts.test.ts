@@ -10,6 +10,7 @@ import { PaymentsService } from '../src/payments/payments.service';
 import { ReportsService } from '../src/reports/reports.service';
 import { ReconciliationService } from '../src/reconciliation/reconciliation.service';
 import { EventsService } from '../src/events/events.service';
+import { InventoryAccountsService } from '../src/inventory/inventory-accounts.service';
 import { createTestPrisma } from './seed';
 
 const context = { actorId: uuidv7() };
@@ -25,7 +26,8 @@ function buildServices() {
   const payments = new PaymentsService(seed.prisma, audit, outbox, accounts, journal);
   const reports = new ReportsService(journal, billing);
   const reconciliation = new ReconciliationService(seed.prisma, audit);
-  const events = new EventsService(seed.prisma, billing, payroll);
+  const inventory = new InventoryAccountsService(accounts, journal);
+  const events = new EventsService(seed.prisma, billing, payroll, inventory);
 
   return {
     ...seed,
@@ -255,5 +257,76 @@ describe('accounts-service', () => {
     });
     expect((await events.ingest(event)).status).toBe('processed');
     expect((await events.ingest(event)).status).toBe('duplicate');
+  });
+
+  it('posts inventory purchase and issue events to balanced journals and dedupes them', async () => {
+    const { prisma, events } = buildServices();
+    const receiptId = uuidv7();
+    const issueId = uuidv7();
+    const itemId = uuidv7();
+    const vendorId = uuidv7();
+    const approvedBy = uuidv7();
+    const approvedAt = '2026-11-24T09:30:00.000Z';
+
+    const purchase = createEvent({
+      type: 'inventory.purchase.received',
+      version: 1,
+      actor: { type: 'USER', id: approvedBy },
+      payload: {
+        receiptId,
+        vendorId,
+        receivedDate: '2026-11-24',
+        reference: 'GR-1024',
+        lines: [
+          {
+            itemId,
+            qty: '12.500',
+            unitCost: '20.00',
+            value: '250.00',
+            inventoryAccountCode: '1210',
+            payableAccountCode: '2050',
+          },
+        ],
+        totalValue: '250.00',
+        approvedBy,
+        approvedAt,
+      },
+    });
+    expect((await events.ingest(purchase)).status).toBe('processed');
+    expect((await events.ingest(purchase)).status).toBe('duplicate');
+
+    const issue = createEvent({
+      type: 'inventory.issue.posted',
+      version: 1,
+      actor: { type: 'USER', id: approvedBy },
+      payload: {
+        issueId,
+        issueDate: '2026-11-24',
+        issuedToType: 'DEPARTMENT',
+        issuedToId: uuidv7(),
+        purpose: 'Factory issue',
+        lines: [
+          {
+            itemId,
+            qty: '2.000',
+            unitCost: '20.00',
+            value: '40.00',
+            expenseAccountCode: '5030',
+            inventoryAccountCode: '1210',
+          },
+        ],
+        totalValue: '40.00',
+        approvedBy,
+        approvedAt,
+      },
+    });
+    expect((await events.ingest(issue)).status).toBe('processed');
+    expect((await events.ingest(issue)).status).toBe('duplicate');
+
+    const entries = prisma.__stores.journalEntry as Array<Record<string, any>>;
+    expect(entries).toHaveLength(2);
+    expect(
+      entries.every((entry) => entry.sourceType === 'INVENTORY' && entry.status === 'POSTED'),
+    ).toBe(true);
   });
 });

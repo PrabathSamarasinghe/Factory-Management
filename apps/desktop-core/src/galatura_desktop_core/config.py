@@ -52,6 +52,10 @@ class AppConfig:
     def accounts_base(self) -> str:
         return f"{self.gateway_url.rstrip('/')}/api/v1/accounts"
 
+    @property
+    def inventory_base(self) -> str:
+        return f"{self.gateway_url.rstrip('/')}/api/v1/inventory"
+
 
 def load_config() -> AppConfig:
     return AppConfig(

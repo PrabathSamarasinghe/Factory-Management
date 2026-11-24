@@ -150,6 +150,28 @@
       "consumers": ["realtime-service", "reporting-service"],
       "orderingKey": "payrollRunId",
       "since": "2026-11-20"
+    },
+    {
+      "type": "inventory.purchase.received",
+      "version": 1,
+      "status": "active",
+      "schema": "schemas/inventory.purchase.received.v1.json",
+      "owner": "inventory-service",
+      "producers": ["inventory-service"],
+      "consumers": ["accounts-service", "reporting-service"],
+      "orderingKey": "receiptId",
+      "since": "2026-11-24"
+    },
+    {
+      "type": "inventory.issue.posted",
+      "version": 1,
+      "status": "active",
+      "schema": "schemas/inventory.issue.posted.v1.json",
+      "owner": "inventory-service",
+      "producers": ["inventory-service"],
+      "consumers": ["accounts-service", "reporting-service"],
+      "orderingKey": "issueId",
+      "since": "2026-11-24"
     }
   ]
 }

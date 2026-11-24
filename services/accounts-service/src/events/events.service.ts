@@ -2,11 +2,17 @@ import { Injectable } from '@nestjs/common';
 import { BusinessRuleError } from '@galatura/platform-kit';
 import type { EventEnvelope } from '@galatura/platform-kit';
 import { BillingService } from '../billing/billing.service';
+import { InventoryAccountsService } from '../inventory/inventory-accounts.service';
 import { PayrollService } from '../payroll/payroll.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { uuid } from '../common/validation';
 
-const SUPPORTED_TYPES = ['collection.finalized', 'attendance.day.closed'] as const;
+const SUPPORTED_TYPES = [
+  'collection.finalized',
+  'attendance.day.closed',
+  'inventory.purchase.received',
+  'inventory.issue.posted',
+] as const;
 
 @Injectable()
 export class EventsService {
@@ -14,6 +20,7 @@ export class EventsService {
     private readonly prisma: PrismaService,
     private readonly billing: BillingService,
     private readonly payroll: PayrollService,
+    private readonly inventory: InventoryAccountsService,
   ) {}
 
   async ingest(event: EventEnvelope<any>) {
@@ -26,8 +33,12 @@ export class EventsService {
 
     if (type === 'collection.finalized') {
       await this.billing.ingestCollectedTotal(event);
-    } else {
+    } else if (type === 'attendance.day.closed') {
       await this.payroll.ingestAttendanceDay(event);
+    } else if (type === 'inventory.purchase.received') {
+      await this.inventory.ingestPurchaseReceived(event);
+    } else {
+      await this.inventory.ingestIssuePosted(event);
     }
 
     await this.prisma.processedEvent.create({ data: { id: eventId, type } });

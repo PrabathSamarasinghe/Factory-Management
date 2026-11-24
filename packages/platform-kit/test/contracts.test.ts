@@ -49,6 +49,12 @@ const validatePaymentPaidPayload = ajv.compile(
 const validatePayrollApprovedPayload = ajv.compile(
   loadJson('../../event-contracts/schemas/payroll.approved.v1.json'),
 );
+const validateInventoryPurchaseReceivedPayload = ajv.compile(
+  loadJson('../../event-contracts/schemas/inventory.purchase.received.v1.json'),
+);
+const validateInventoryIssuePostedPayload = ajv.compile(
+  loadJson('../../event-contracts/schemas/inventory.issue.posted.v1.json'),
+);
 
 function expectValid(validate: ReturnType<typeof ajv.compile>, value: unknown): void {
   const valid = validate(value);
@@ -365,6 +371,92 @@ describe('event contracts', () => {
       false,
     );
     expect(validatePayrollApprovedPayload({ ...payload, employeeBankDetails: 'hidden' })).toBe(
+      false,
+    );
+  });
+
+  it('validates inventory.purchase.received with decimal strings and account codes', () => {
+    const approvedBy = uuidv7();
+    const payload = {
+      receiptId: uuidv7(),
+      vendorId: uuidv7(),
+      receivedDate: '2026-11-24',
+      reference: 'GR-1024',
+      lines: [
+        {
+          itemId: uuidv7(),
+          qty: '12.500',
+          unitCost: '250.00',
+          value: '3125.00',
+          inventoryAccountCode: '1310',
+          payableAccountCode: '2110',
+        },
+      ],
+      totalValue: '3125.00',
+      approvedBy,
+      approvedAt: '2026-11-24T09:30:00.000Z',
+    };
+
+    expectValid(validateInventoryPurchaseReceivedPayload, payload);
+    expectValid(
+      validateEventEnvelope,
+      createEvent({
+        type: 'inventory.purchase.received',
+        payload,
+        actor: { type: 'USER', id: approvedBy },
+        producer: 'inventory-service',
+      }),
+    );
+
+    expect(validateInventoryPurchaseReceivedPayload({ ...payload, lines: [] })).toBe(false);
+    expect(validateInventoryPurchaseReceivedPayload({ ...payload, totalValue: 3125 })).toBe(false);
+    expect(
+      validateInventoryPurchaseReceivedPayload({ ...payload, vendorBankAccount: '0001234567' }),
+    ).toBe(false);
+  });
+
+  it('validates inventory.issue.posted with decimal strings and account codes', () => {
+    const approvedBy = uuidv7();
+    const payload = {
+      issueId: uuidv7(),
+      issueDate: '2026-11-24',
+      issuedToType: 'DEPARTMENT',
+      issuedToId: uuidv7(),
+      purpose: 'Production issue',
+      lines: [
+        {
+          itemId: uuidv7(),
+          qty: '4.250',
+          unitCost: '250.00',
+          value: '1062.50',
+          expenseAccountCode: '5110',
+          inventoryAccountCode: '1310',
+        },
+      ],
+      totalValue: '1062.50',
+      approvedBy,
+      approvedAt: '2026-11-24T11:15:00.000Z',
+    };
+
+    expectValid(validateInventoryIssuePostedPayload, payload);
+    expectValid(
+      validateEventEnvelope,
+      createEvent({
+        type: 'inventory.issue.posted',
+        payload,
+        actor: { type: 'USER', id: approvedBy },
+        producer: 'inventory-service',
+      }),
+    );
+
+    expect(validateInventoryIssuePostedPayload({ ...payload, lines: [] })).toBe(false);
+    expect(
+      validateInventoryIssuePostedPayload({
+        ...payload,
+        lines: [{ ...payload.lines[0], qty: 4.25 }],
+      }),
+    ).toBe(false);
+    expect(validateInventoryIssuePostedPayload({ ...payload, recipientName: 'Store keeper' })).toBe(
       false,
     );
   });

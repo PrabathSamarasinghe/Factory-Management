@@ -55,6 +55,26 @@ describe('RoutePolicyService (Tasks 1.5 & 1.8 - C7 Lockdown)', () => {
     ).toThrow(ForbiddenError);
   });
 
+  it('allows C6 Inventory app to access inventory routes while C7 remains blocked', () => {
+    const storeKeeperPrincipal: any = {
+      subject: 'store-keeper-123',
+      roles: ['STORE_KEEPER'],
+      permissions: ['item:read', 'stock:read', 'stock:movement'],
+      permissionsVersion: 1,
+      scope: 'ALL',
+      audience: 'galatura-services',
+    };
+
+    expect(() =>
+      policy.evaluatePolicy('/api/v1/inventory/items', 'C6', storeKeeperPrincipal),
+    ).not.toThrow();
+    expect(() =>
+      policy.evaluatePolicy('/api/v1/inventory/stock/balances', 'C6', storeKeeperPrincipal),
+    ).not.toThrow();
+
+    expect(() => policy.evaluatePolicy('/api/v1/inventory/items', 'C7')).toThrow(ForbiddenError);
+  });
+
   it('blocks principal having MONITOR role from accessing non-monitor routes', () => {
     const monitorPrincipal: any = {
       subject: 'user-123',

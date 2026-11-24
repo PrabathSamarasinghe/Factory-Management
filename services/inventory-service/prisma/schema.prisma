@@ -1,0 +1,396 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  schemas  = ["inventory"]
+}
+
+enum ValuationMethod {
+  WEIGHTED_AVG
+  FIFO
+  LIFO
+
+  @@schema("inventory")
+}
+
+enum DocumentStatus {
+  DRAFT
+  APPROVED
+  CANCELLED
+
+  @@schema("inventory")
+}
+
+enum StockTakeStatus {
+  OPEN
+  COMPLETED
+  CANCELLED
+
+  @@schema("inventory")
+}
+
+enum MovementType {
+  RECEIPT
+  ISSUE
+  TRANSFER_IN
+  TRANSFER_OUT
+  ADJUSTMENT
+  RETURN
+
+  @@schema("inventory")
+}
+
+model ItemCategory {
+  id        String        @id @default(uuid(7)) @db.Uuid
+  name      String        @db.Text
+  parentId  String?       @map("parent_id") @db.Uuid
+  createdAt DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  parent    ItemCategory? @relation("CategoryTree", fields: [parentId], references: [id])
+  children  ItemCategory[] @relation("CategoryTree")
+  items     Item[]
+
+  @@index([parentId])
+  @@map("item_categories")
+  @@schema("inventory")
+}
+
+model Unit {
+  id    String @id @default(uuid(7)) @db.Uuid
+  code  String @unique @db.Text
+  name  String @db.Text
+  items Item[]
+
+  @@map("units")
+  @@schema("inventory")
+}
+
+model Item {
+  id              String          @id @default(uuid(7)) @db.Uuid
+  sku             String          @unique @db.Text
+  name            String          @db.Text
+  categoryId      String          @map("category_id") @db.Uuid
+  unitId          String          @map("unit_id") @db.Uuid
+  barcode         String?         @db.Text
+  reorderLevel    Decimal         @map("reorder_level") @db.Decimal(18, 3)
+  reorderQty      Decimal         @map("reorder_qty") @db.Decimal(18, 3)
+  isBatchTracked  Boolean         @default(false) @map("is_batch_tracked")
+  valuationMethod ValuationMethod @default(WEIGHTED_AVG) @map("valuation_method")
+  active          Boolean         @default(true)
+  createdAt       DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime        @updatedAt @map("updated_at") @db.Timestamptz(6)
+  category        ItemCategory    @relation(fields: [categoryId], references: [id])
+  unit            Unit            @relation(fields: [unitId], references: [id])
+  receiptLines    GoodsReceiptLine[]
+  issueLines      GoodsIssueLine[]
+  transferLines   TransferLine[]
+  adjustments     Adjustment[]
+  takeLines       StockTakeLine[]
+  batches         StockBatch[]
+  movements       StockMovement[]
+  balances        StockBalance[]
+
+  @@index([categoryId])
+  @@index([unitId])
+  @@map("items")
+  @@schema("inventory")
+}
+
+model Warehouse {
+  id        String         @id @default(uuid(7)) @db.Uuid
+  name      String         @unique @db.Text
+  location  String         @db.Text
+  active    Boolean        @default(true)
+  createdAt DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  locations StockLocation[]
+
+  @@map("warehouses")
+  @@schema("inventory")
+}
+
+model StockLocation {
+  id           String         @id @default(uuid(7)) @db.Uuid
+  warehouseId  String         @map("warehouse_id") @db.Uuid
+  code         String         @db.Text
+  name         String         @db.Text
+  active       Boolean        @default(true)
+  warehouse    Warehouse      @relation(fields: [warehouseId], references: [id])
+  receipts     GoodsReceipt[]
+  transfersOut Transfer[]     @relation("TransferFrom")
+  transfersIn  Transfer[]     @relation("TransferTo")
+  adjustments  Adjustment[]
+  stockTakes   StockTake[]
+  movements    StockMovement[]
+  balances     StockBalance[]
+
+  @@unique([warehouseId, code])
+  @@index([warehouseId])
+  @@map("stock_locations")
+  @@schema("inventory")
+}
+
+model Vendor {
+  id                String         @id @default(uuid(7)) @db.Uuid
+  name              String         @db.Text
+  contact           String?        @db.Text
+  phone             String?        @db.Text
+  address           String?        @db.Text
+  taxNo             String?        @map("tax_no") @db.Text
+  bankDetailsEnc    Bytes?         @map("bank_details_enc")
+  bankDetailsMasked String?        @map("bank_details_masked") @db.Text
+  createdAt         DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime       @updatedAt @map("updated_at") @db.Timestamptz(6)
+  receipts          GoodsReceipt[]
+
+  @@map("vendors")
+  @@schema("inventory")
+}
+
+model GoodsReceipt {
+  id             String            @id @default(uuid(7)) @db.Uuid
+  vendorId       String            @map("vendor_id") @db.Uuid
+  receiptDate    DateTime          @map("receipt_date") @db.Date
+  reference      String            @db.Text
+  status         DocumentStatus    @default(DRAFT)
+  locationId     String            @map("location_id") @db.Uuid
+  receivedById   String?           @map("received_by_id") @db.Uuid
+  approvedById   String?           @map("approved_by_id") @db.Uuid
+  approvedAt     DateTime?         @map("approved_at") @db.Timestamptz(6)
+  idempotencyKey String?           @unique @map("idempotency_key") @db.Text
+  createdAt      DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime          @updatedAt @map("updated_at") @db.Timestamptz(6)
+  vendor         Vendor            @relation(fields: [vendorId], references: [id])
+  location       StockLocation     @relation(fields: [locationId], references: [id])
+  lines          GoodsReceiptLine[]
+
+  @@index([vendorId, receiptDate])
+  @@index([status])
+  @@map("goods_receipts")
+  @@schema("inventory")
+}
+
+model GoodsReceiptLine {
+  id         String       @id @default(uuid(7)) @db.Uuid
+  receiptId  String       @map("receipt_id") @db.Uuid
+  itemId     String       @map("item_id") @db.Uuid
+  qty        Decimal      @db.Decimal(18, 3)
+  unitCost   Decimal      @map("unit_cost") @db.Decimal(18, 2)
+  batchNo    String?      @map("batch_no") @db.Text
+  expiryDate DateTime?    @map("expiry_date") @db.Date
+  receipt    GoodsReceipt @relation(fields: [receiptId], references: [id])
+  item       Item         @relation(fields: [itemId], references: [id])
+
+  @@index([receiptId])
+  @@map("goods_receipt_lines")
+  @@schema("inventory")
+}
+
+model GoodsIssue {
+  id             String          @id @default(uuid(7)) @db.Uuid
+  issueDate      DateTime        @map("issue_date") @db.Date
+  issuedToType   String          @map("issued_to_type") @db.Text
+  issuedToId     String          @map("issued_to_id") @db.Uuid
+  purpose        String          @db.Text
+  status         DocumentStatus  @default(DRAFT)
+  issuedById     String?         @map("issued_by_id") @db.Uuid
+  approvedById   String?         @map("approved_by_id") @db.Uuid
+  approvedAt     DateTime?       @map("approved_at") @db.Timestamptz(6)
+  idempotencyKey String?         @unique @map("idempotency_key") @db.Text
+  createdAt      DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime        @updatedAt @map("updated_at") @db.Timestamptz(6)
+  lines          GoodsIssueLine[]
+
+  @@index([issueDate])
+  @@index([status])
+  @@map("goods_issues")
+  @@schema("inventory")
+}
+
+model GoodsIssueLine {
+  id      String     @id @default(uuid(7)) @db.Uuid
+  issueId String     @map("issue_id") @db.Uuid
+  itemId  String     @map("item_id") @db.Uuid
+  qty     Decimal    @db.Decimal(18, 3)
+  batchId String?    @map("batch_id") @db.Text
+  issue   GoodsIssue @relation(fields: [issueId], references: [id])
+  item    Item       @relation(fields: [itemId], references: [id])
+
+  @@index([issueId])
+  @@map("goods_issue_lines")
+  @@schema("inventory")
+}
+
+model Transfer {
+  id             String         @id @default(uuid(7)) @db.Uuid
+  fromLocationId String         @map("from_location_id") @db.Uuid
+  toLocationId   String         @map("to_location_id") @db.Uuid
+  status         DocumentStatus @default(DRAFT)
+  approvedById   String?        @map("approved_by_id") @db.Uuid
+  approvedAt     DateTime?      @map("approved_at") @db.Timestamptz(6)
+  idempotencyKey String?        @unique @map("idempotency_key") @db.Text
+  createdAt      DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime       @updatedAt @map("updated_at") @db.Timestamptz(6)
+  fromLocation   StockLocation  @relation("TransferFrom", fields: [fromLocationId], references: [id])
+  toLocation     StockLocation  @relation("TransferTo", fields: [toLocationId], references: [id])
+  lines          TransferLine[]
+
+  @@index([fromLocationId, toLocationId])
+  @@index([status])
+  @@map("transfers")
+  @@schema("inventory")
+}
+
+model TransferLine {
+  id         String   @id @default(uuid(7)) @db.Uuid
+  transferId String   @map("transfer_id") @db.Uuid
+  itemId     String   @map("item_id") @db.Uuid
+  qty        Decimal  @db.Decimal(18, 3)
+  batchId    String?  @map("batch_id") @db.Text
+  transfer   Transfer @relation(fields: [transferId], references: [id])
+  item       Item     @relation(fields: [itemId], references: [id])
+
+  @@index([transferId])
+  @@map("transfer_lines")
+  @@schema("inventory")
+}
+
+model Adjustment {
+  id             String         @id @default(uuid(7)) @db.Uuid
+  locationId     String         @map("location_id") @db.Uuid
+  itemId         String         @map("item_id") @db.Uuid
+  qtyDelta       Decimal        @map("qty_delta") @db.Decimal(18, 3)
+  reason         String         @db.Text
+  status         DocumentStatus @default(DRAFT)
+  approvedById   String?        @map("approved_by_id") @db.Uuid
+  approvedAt     DateTime?      @map("approved_at") @db.Timestamptz(6)
+  idempotencyKey String?        @unique @map("idempotency_key") @db.Text
+  createdAt      DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime       @updatedAt @map("updated_at") @db.Timestamptz(6)
+  location       StockLocation  @relation(fields: [locationId], references: [id])
+  item           Item           @relation(fields: [itemId], references: [id])
+
+  @@index([locationId, itemId])
+  @@index([status])
+  @@map("adjustments")
+  @@schema("inventory")
+}
+
+model StockTake {
+  id             String         @id @default(uuid(7)) @db.Uuid
+  locationId     String         @map("location_id") @db.Uuid
+  status         StockTakeStatus @default(OPEN)
+  startedAt      DateTime       @map("started_at") @db.Timestamptz(6)
+  completedAt    DateTime?      @map("completed_at") @db.Timestamptz(6)
+  idempotencyKey String?        @unique @map("idempotency_key") @db.Text
+  createdAt      DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  location       StockLocation  @relation(fields: [locationId], references: [id])
+  lines          StockTakeLine[]
+
+  @@index([locationId, status])
+  @@map("stock_takes")
+  @@schema("inventory")
+}
+
+model StockTakeLine {
+  id         String    @id @default(uuid(7)) @db.Uuid
+  takeId     String    @map("take_id") @db.Uuid
+  itemId     String    @map("item_id") @db.Uuid
+  systemQty  Decimal   @map("system_qty") @db.Decimal(18, 3)
+  countedQty Decimal   @map("counted_qty") @db.Decimal(18, 3)
+  variance   Decimal   @db.Decimal(18, 3)
+  applied    Boolean   @default(false)
+  take       StockTake @relation(fields: [takeId], references: [id])
+  item       Item      @relation(fields: [itemId], references: [id])
+
+  @@unique([takeId, itemId])
+  @@map("stock_take_lines")
+  @@schema("inventory")
+}
+
+model StockBatch {
+  id           String    @id @default(uuid(7)) @db.Uuid
+  itemId       String    @map("item_id") @db.Uuid
+  batchNo      String    @map("batch_no") @db.Text
+  receivedOn   DateTime  @map("received_on") @db.Timestamptz(6)
+  expiryDate   DateTime? @map("expiry_date") @db.Timestamptz(6)
+  qtyRemaining Decimal   @map("qty_remaining") @db.Decimal(18, 3)
+  item         Item      @relation(fields: [itemId], references: [id])
+
+  @@unique([itemId, batchNo])
+  @@map("stock_batches")
+  @@schema("inventory")
+}
+
+model StockMovement {
+  id            String       @id @default(uuid(7)) @db.Uuid
+  itemId        String       @map("item_id") @db.Uuid
+  locationId    String       @map("location_id") @db.Uuid
+  batchId       String?      @map("batch_id") @db.Text
+  movementType  MovementType @map("movement_type")
+  qty           Decimal      @db.Decimal(18, 3)
+  unitCost      Decimal      @map("unit_cost") @db.Decimal(18, 2)
+  referenceType String       @map("reference_type") @db.Text
+  referenceId   String       @map("reference_id") @db.Text
+  reference     String       @db.Text
+  occurredAt    DateTime     @map("occurred_at") @db.Timestamptz(6)
+  createdBy     String?      @map("created_by") @db.Uuid
+  createdAt     DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  item          Item         @relation(fields: [itemId], references: [id])
+  location      StockLocation @relation(fields: [locationId], references: [id])
+
+  @@index([itemId, locationId])
+  @@index([occurredAt])
+  @@index([referenceType, referenceId])
+  @@map("stock_movements")
+  @@schema("inventory")
+}
+
+model StockBalance {
+  itemId     String   @map("item_id") @db.Uuid
+  locationId String   @map("location_id") @db.Uuid
+  qtyOnHand  Decimal  @map("qty_on_hand") @db.Decimal(18, 3)
+  avgCost    Decimal  @map("avg_cost") @db.Decimal(18, 2)
+  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  item       Item     @relation(fields: [itemId], references: [id])
+  location   StockLocation @relation(fields: [locationId], references: [id])
+
+  @@id([itemId, locationId])
+  @@map("stock_balances")
+  @@schema("inventory")
+}
+
+model OutboxEvent {
+  id          String    @id @db.Uuid
+  envelope    Json
+  publishedAt DateTime? @map("published_at") @db.Timestamptz(6)
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@map("outbox_events")
+  @@schema("inventory")
+}
+
+model AuditLog {
+  id         String   @id @default(uuid(7)) @db.Uuid
+  action     String   @db.Text
+  entityType String   @map("entity_type") @db.Text
+  entityId   String   @map("entity_id") @db.Text
+  actorId    String?  @map("actor_id") @db.Uuid
+  details    Json?
+  traceId    String?  @map("trace_id") @db.Text
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([entityType, entityId])
+  @@map("audit_logs")
+  @@schema("inventory")
+}
+
+model ProcessedEvent {
+  id          String   @id @db.Uuid
+  type        String   @db.Text
+  processedAt DateTime @map("processed_at") @db.Timestamptz(6)
+
+  @@map("processed_events")
+  @@schema("inventory")
+}

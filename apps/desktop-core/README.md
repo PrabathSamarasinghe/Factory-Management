@@ -1,9 +1,9 @@
 # Galatura Desktop Core
 
 Shared foundation for the Galatura PySide6 desktop apps (C1 admin console, C4
-dispatch, C5/C6 kiosks). It is intentionally UI-light: configuration, HTTP
-client, authentication/session handling, token storage, theme, and reusable
-widgets live here.
+dispatch, C5 accounts and C6 inventory). It is intentionally UI-light:
+configuration, HTTP client, authentication/session handling, token storage,
+theme, and reusable widgets live here.
 
 ## Install
 
@@ -30,6 +30,7 @@ All settings come from environment variables:
 | `GALATURA_GATEWAY_URL`      | `http://localhost:3000`           | Gateway base URL                             |
 | Fleet API base              | `<gateway>/api/v1/fleet`          | Derived from `GALATURA_GATEWAY_URL`          |
 | Accounts API base           | `<gateway>/api/v1/accounts`       | Derived from `GALATURA_GATEWAY_URL`          |
+| Inventory API base          | `<gateway>/api/v1/inventory`      | Derived from `GALATURA_GATEWAY_URL`          |
 | `GALATURA_CLIENT_APP`       | `C1`                              | Client app code sent as `x-client-app`       |
 | `GALATURA_REQUEST_TIMEOUT`  | `20`                              | HTTP timeout in seconds                      |
 | `GALATURA_VERIFY_TLS`       | `true`                            | Verify TLS certificates                      |
@@ -45,10 +46,13 @@ All settings come from environment variables:
   `401`, and typed errors (`ApiError`, `AuthenticationError`, `NetworkError`).
 - `token_store.py` - keyring-backed token persistence with an in-memory
   fallback when no backend is available.
-- `identity_api.py` / `people_api.py` / `fleet_api.py` / `accounts_api.py` -
-  thin clients for the identity, people, fleet and accounts service endpoints.
+- `identity_api.py` / `people_api.py` / `fleet_api.py` / `accounts_api.py` /
+  `inventory_api.py` - thin clients for the identity, people, fleet, accounts
+  and inventory service endpoints.
 - `ApiClient.request` accepts per-request `headers` (for example
   `Idempotency-Key`) and `raw_response` for binary exports.
+- C6 uses `session.inventory` and defaults `x-client-app` to `C6`; inventory
+  quantities and costs are sent as decimal strings.
 - `session.py` - `SessionManager` (Qt signals `logged_in` / `logged_out`,
   login/2FA/logout, profile + permission decoding).
 - `theme.py`, `widgets.py` - dark theme, page headers, cards, data tables,

@@ -19,6 +19,7 @@ import { ReconciliationService } from './reconciliation/reconciliation.service';
 import { ReconciliationController } from './reconciliation/reconciliation.controller';
 import { EventsService } from './events/events.service';
 import { EventsController } from './events/events.controller';
+import { InventoryAccountsService } from './inventory/inventory-accounts.service';
 
 @Module({
   controllers: [
@@ -44,6 +45,7 @@ import { EventsController } from './events/events.controller';
     ReportsService,
     ReconciliationService,
     EventsService,
+    InventoryAccountsService,
   ],
 })
 export class AppModule {}
