@@ -5,3 +5,4 @@ coverage
 pnpm-lock.yaml
 **/*.py
 apps/desktop-*
+.github/CODEOWNERS

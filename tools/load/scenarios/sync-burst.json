@@ -1,0 +1,112 @@
+{
+  "name": "C2/C3/C7 sync burst",
+  "description": "Staging-only burst across collection sync, attendance marking, master data and realtime catch-up.",
+  "targetEnv": "staging",
+  "basePath": "/api/v1",
+  "warmup": {
+    "durationSeconds": 15,
+    "concurrency": 10
+  },
+  "requests": [
+    {
+      "name": "sync-pull",
+      "method": "GET",
+      "path": "/api/v1/collection/sync/pull?since={{since}}&limit=50",
+      "weight": 15,
+      "headers": {
+        "Accept": "application/json"
+      },
+      "expectedStatus": 200
+    },
+    {
+      "name": "sync-push",
+      "method": "POST",
+      "path": "/api/v1/collection/sync/push",
+      "weight": 20,
+      "headers": {
+        "Accept": "application/json",
+        "Content-Type": "application/json",
+        "Idempotency-Key": "{{clientSyncId}}"
+      },
+      "body": {
+        "deviceId": "{{deviceId}}",
+        "sentAt": "{{sentAt}}",
+        "items": [
+          {
+            "type": "PICKUP",
+            "clientId": "{{clientPickupId}}",
+            "payload": {
+              "tripId": "{{tripId}}",
+              "supplierId": "{{supplierId}}",
+              "supplierRegNo": "LOAD-TEST-REG",
+              "grossWeightKg": "18.500",
+              "bagsCount": 30,
+              "tareKg": "0.250",
+              "moistureDeductionKg": "0.000",
+              "qualityGrade": "A",
+              "recordedAtDevice": "{{capturedAt}}",
+              "scanMethod": "BARCODE",
+              "deviceId": "{{deviceId}}"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "attendance-mark",
+      "method": "POST",
+      "path": "/api/v1/attendance/mark",
+      "weight": 15,
+      "headers": {
+        "Accept": "application/json",
+        "Content-Type": "application/json",
+        "Idempotency-Key": "{{clientEventId}}"
+      },
+      "body": {
+        "clientEventId": "{{clientEventId}}",
+        "personId": "{{personId}}",
+        "deviceId": "{{deviceId}}",
+        "eventType": "CHECK_IN",
+        "imageBase64": "{{faceFrameBase64}}",
+        "capturedAt": "{{capturedAt}}"
+      }
+    },
+    {
+      "name": "attendance-events",
+      "method": "GET",
+      "path": "/api/v1/attendance/events?personId={{personId}}",
+      "weight": 15,
+      "headers": {
+        "Accept": "application/json"
+      },
+      "expectedStatus": 200
+    },
+    {
+      "name": "master-data-pull",
+      "method": "GET",
+      "path": "/api/v1/collection/master-data/pull?since={{since}}",
+      "weight": 20,
+      "headers": {
+        "Accept": "application/json"
+      },
+      "expectedStatus": 200
+    },
+    {
+      "name": "realtime-catch-up",
+      "method": "GET",
+      "path": "/api/v1/realtime/events/catch-up?channel={{channel}}",
+      "weight": 15,
+      "headers": {
+        "Accept": "application/json"
+      },
+      "expectedStatus": 200
+    }
+  ],
+  "thresholds": {
+    "durationSeconds": 180,
+    "concurrency": 40,
+    "maxErrorRatePct": 0.5,
+    "maxP95Ms": 300,
+    "minRequests": 2000
+  }
+}

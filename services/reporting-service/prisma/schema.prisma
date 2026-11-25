@@ -1,0 +1,118 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  schemas  = ["reporting"]
+}
+
+model ProcessedEvent {
+  id          String   @id @db.Uuid
+  consumer    String   @db.Text
+  type        String   @db.Text
+  processedAt DateTime @map("processed_at") @db.Timestamptz(6)
+
+  @@unique([consumer, id])
+  @@index([type])
+  @@map("processed_events")
+  @@schema("reporting")
+}
+
+model RptDailySummary {
+  date                DateTime @id @db.Date
+  attendancePresent   Int      @map("attendance_present")
+  attendanceLate      Int      @map("attendance_late")
+  attendanceAbsent    Int      @map("attendance_absent")
+  tripsStarted        Int      @map("trips_started")
+  tripsEnded          Int      @map("trips_ended")
+  kgCollected         Decimal  @map("kg_collected") @db.Decimal(18, 3)
+  kgWeighed           Decimal  @map("kg_weighed") @db.Decimal(18, 3)
+  suppliersPaidDecimal Decimal @map("suppliers_paid_decimal") @db.Decimal(18, 2)
+  smsQueued           Int      @map("sms_queued")
+  smsSent             Int      @map("sms_sent")
+  smsDelivered        Int      @map("sms_delivered")
+  smsFailed           Int      @map("sms_failed")
+  sourceEventIds      Json     @map("source_event_ids")
+  updatedAt           DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("rpt_daily_summary")
+  @@schema("reporting")
+}
+
+model RptTripLive {
+  tripId         String    @id @map("trip_id") @db.Uuid
+  routeId        String?   @map("route_id") @db.Uuid
+  lorryId        String?   @map("lorry_id") @db.Uuid
+  status         String    @db.Text
+  startedAt      DateTime? @map("started_at") @db.Timestamptz(6)
+  endedAt        DateTime? @map("ended_at") @db.Timestamptz(6)
+  lastEventId    String    @map("last_event_id") @db.Uuid
+  sourceEventIds Json      @map("source_event_ids")
+  updatedAt      DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([status])
+  @@map("rpt_trip_live")
+  @@schema("reporting")
+}
+
+model RptSupplierDaily {
+  id             String   @id @db.Text
+  supplierId     String   @map("supplier_id") @db.Uuid
+  date           DateTime @db.Date
+  collectionKg   Decimal  @map("collection_kg") @db.Decimal(18, 3)
+  collectionBags Int      @map("collection_bags")
+  paidAmount     Decimal  @map("paid_amount") @db.Decimal(18, 2)
+  sourceEventIds Json     @map("source_event_ids")
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@unique([supplierId, date])
+  @@index([date])
+  @@map("rpt_supplier_daily")
+  @@schema("reporting")
+}
+
+model RptFinanceSnapshot {
+  id                    String   @id @db.Text
+  cashIn                Decimal  @map("cash_in") @db.Decimal(18, 2)
+  cashOut               Decimal  @map("cash_out") @db.Decimal(18, 2)
+  payables              Decimal  @db.Decimal(18, 2)
+  journalPostedTotal    Decimal  @map("journal_posted_total") @db.Decimal(18, 2)
+  payrollApprovedTotal  Decimal  @map("payroll_approved_total") @db.Decimal(18, 2)
+  paymentPaidTotal      Decimal  @map("payment_paid_total") @db.Decimal(18, 2)
+  sourceEventIds        Json     @map("source_event_ids")
+  updatedAt             DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("rpt_finance_snapshot")
+  @@schema("reporting")
+}
+
+model RptInventorySnapshot {
+  id             String   @id @db.Text
+  purchaseQty    Decimal  @map("purchase_qty") @db.Decimal(18, 3)
+  purchaseValue  Decimal  @map("purchase_value") @db.Decimal(18, 2)
+  issueQty       Decimal  @map("issue_qty") @db.Decimal(18, 3)
+  issueValue     Decimal  @map("issue_value") @db.Decimal(18, 2)
+  receiptCount   Int      @map("receipt_count")
+  issueCount     Int      @map("issue_count")
+  sourceEventIds Json     @map("source_event_ids")
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("rpt_inventory_snapshot")
+  @@schema("reporting")
+}
+
+model IngestAudit {
+  id        String   @id @default(uuid(7)) @db.Uuid
+  eventId   String   @map("event_id") @db.Uuid
+  eventType String   @map("event_type") @db.Text
+  status    String   @db.Text
+  error     String?  @db.Text
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([eventId])
+  @@index([status])
+  @@map("ingest_audit")
+  @@schema("reporting")
+}

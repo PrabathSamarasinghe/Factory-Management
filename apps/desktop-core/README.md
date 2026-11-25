@@ -31,6 +31,7 @@ All settings come from environment variables:
 | Fleet API base              | `<gateway>/api/v1/fleet`          | Derived from `GALATURA_GATEWAY_URL`          |
 | Accounts API base           | `<gateway>/api/v1/accounts`       | Derived from `GALATURA_GATEWAY_URL`          |
 | Inventory API base          | `<gateway>/api/v1/inventory`      | Derived from `GALATURA_GATEWAY_URL`          |
+| Monitor API base            | `<gateway>/api/v1/monitor`        | Derived from `GALATURA_GATEWAY_URL`          |
 | `GALATURA_CLIENT_APP`       | `C1`                              | Client app code sent as `x-client-app`       |
 | `GALATURA_REQUEST_TIMEOUT`  | `20`                              | HTTP timeout in seconds                      |
 | `GALATURA_VERIFY_TLS`       | `true`                            | Verify TLS certificates                      |
@@ -49,10 +50,15 @@ All settings come from environment variables:
 - `identity_api.py` / `people_api.py` / `fleet_api.py` / `accounts_api.py` /
   `inventory_api.py` - thin clients for the identity, people, fleet, accounts
   and inventory service endpoints.
+- `monitoring_api.py` - read-only client for the reporting projections
+  (`/today`, `/trips`, `/attendance`, `/collections?date=`, `/finance`,
+  `/inventory`, `/rebuild`); decimal fields are normalized to strings.
 - `ApiClient.request` accepts per-request `headers` (for example
   `Idempotency-Key`) and `raw_response` for binary exports.
 - C6 uses `session.inventory` and defaults `x-client-app` to `C6`; inventory
   quantities and costs are sent as decimal strings.
+- `session.monitoring` exposes the monitor read models to C1/C7; it requires
+  `monitor:read` (and `monitor:finance` for the finance projection).
 - `session.py` - `SessionManager` (Qt signals `logged_in` / `logged_out`,
   login/2FA/logout, profile + permission decoding).
 - `theme.py`, `widgets.py` - dark theme, page headers, cards, data tables,

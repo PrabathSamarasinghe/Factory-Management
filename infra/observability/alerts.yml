@@ -1,0 +1,246 @@
+groups:
+  - name: galatura.slo
+    interval: 30s
+    rules:
+      - alert: GatewayAvailabilityBelowSLO
+        expr: |
+          sum(increase(http_server_requests_total{service="gateway", status_class!="5xx"}[30d]))
+          /
+          clamp_min(sum(increase(http_server_requests_total{service="gateway"}[30d])), 1)
+          < 0.999
+        for: 10m
+        labels:
+          severity: P2
+          service: gateway
+          owner: platform
+          slo: gateway-availability
+          runbook: docs/runbooks/alert-triage.md#p1-prod-down
+        annotations:
+          summary: Gateway availability is below the 99.9% monthly SLO
+          description: The 30-day successful request ratio for the gateway is below 99.9%. If service_up is zero, follow the P1 prod down entry.
+          impact: Users cannot complete work reliably through the gateway.
+          runbook_url: docs/runbooks/alert-triage.md#p1-prod-down
+
+      - alert: ApiReadP95LatencyAboveSLO
+        expr: |
+          histogram_quantile(
+            0.95,
+            sum by (le) (
+              rate(http_server_request_duration_seconds_bucket{service="gateway", method=~"GET|HEAD", route!~"/healthz|/readyz|/metrics"}[5m])
+            )
+          ) > 0.3
+        for: 10m
+        labels:
+          severity: P3
+          service: gateway
+          owner: platform
+          slo: p95-reads
+          runbook: docs/runbooks/alert-triage.md#p3-p95-latency
+        annotations:
+          summary: API read p95 latency is above 300 ms
+          description: Gateway read requests have exceeded the 300 ms p95 SLO for 10 minutes.
+          impact: Dashboards and lookups are slow for users.
+          runbook_url: docs/runbooks/alert-triage.md#p3-p95-latency
+
+      - alert: CollectionSyncSuccessBelowSLO
+        expr: |
+          sum(increase(pickups_synced_total[10m]))
+          /
+          clamp_min(
+            sum(increase(pickups_synced_total[10m])) + sum(increase(sync_rejected_total[10m])),
+            1
+          )
+          < 0.995
+        for: 10m
+        labels:
+          severity: P2
+          service: collection
+          owner: collection-service
+          slo: sync-success
+          runbook: docs/runbooks/alert-triage.md#p2-outbox-lag
+        annotations:
+          summary: Collection sync success is below 99.5%
+          description: Accepted pickups compared with accepted plus rejected pickups is below the SLO for 10 minutes.
+          impact: Helper records may be delayed or rejected before weighing.
+          runbook_url: docs/runbooks/alert-triage.md#p2-outbox-lag
+
+      - alert: RealtimeConnectSuccessBelowSLO
+        expr: |
+          sum(increase(realtime_connect_total{result="success"}[10m]))
+          /
+          clamp_min(sum(increase(realtime_connect_total[10m])), 1)
+          < 0.99
+        for: 10m
+        labels:
+          severity: P2
+          service: realtime
+          owner: realtime-service
+          slo: realtime-connect
+          runbook: docs/runbooks/alert-triage.md#p2-realtime-down
+        annotations:
+          summary: Realtime connect success is below 99%
+          description: WebSocket ticket and connect attempts are succeeding below the 99% SLO for 10 minutes.
+          impact: C1, C4, C5, and C7 may show stale data until REST catch-up is used.
+          runbook_url: docs/runbooks/alert-triage.md#p2-realtime-down
+
+      - alert: SmsDispatchWithin60sBelowSLO
+        expr: |
+          sum(increase(sms_delivery_latency_seconds_bucket{le="60"}[10m]))
+          /
+          clamp_min(sum(increase(sms_delivery_latency_seconds_count[10m])), 1)
+          < 0.99
+        for: 10m
+        labels:
+          severity: P3
+          service: notification
+          owner: notification-service
+          slo: sms-dispatch-60s
+          runbook: docs/runbooks/alert-triage.md#p3-sms-failure-rate
+        annotations:
+          summary: Less than 99% of SMS messages are dispatched within 60 seconds
+          description: Supplier notification dispatch latency is above the 60 second SLO for the evaluation window.
+          impact: Suppliers may receive daily totals late.
+          runbook_url: docs/runbooks/alert-triage.md#p3-sms-failure-rate
+
+  - name: galatura.hard-invariants
+    interval: 30s
+    rules:
+      - alert: TrialBalanceImbalance
+        expr: max(abs(trial_balance_difference)) > 0
+        for: 0m
+        labels:
+          severity: P1
+          service: accounts
+          owner: accounts-service
+          slo: trial-balance-zero
+          runbook: docs/runbooks/alert-triage.md#p1-trial-balance-imbalance
+        annotations:
+          summary: Trial balance difference is not zero
+          description: The hard accounting invariant is broken; all financial reporting is unsafe until resolved.
+          impact: Ledger integrity and financial decisions are unreliable.
+          runbook_url: docs/runbooks/alert-triage.md#p1-trial-balance-imbalance
+
+  - name: galatura.reliability
+    interval: 30s
+    rules:
+      - alert: GatewayErrorRateHigh
+        expr: |
+          sum(rate(http_server_requests_total{status_class="5xx"}[5m]))
+          /
+          clamp_min(sum(rate(http_server_requests_total[5m])), 1)
+          > 0.05
+        for: 5m
+        labels:
+          severity: P2
+          service: gateway
+          owner: platform
+          slo: error-rate
+          runbook: docs/runbooks/alert-triage.md#p2-high-error-rate
+        annotations:
+          summary: Server error rate is above 5%
+          description: More than 5% of requests returned a 5xx status for 5 minutes.
+          impact: Users see failed requests and partial operations are possible.
+          runbook_url: docs/runbooks/alert-triage.md#p2-high-error-rate
+
+      - alert: OutboxLagHigh
+        expr: max(outbox_lag_seconds) > 300
+        for: 5m
+        labels:
+          severity: P2
+          service: platform
+          owner: platform
+          slo: outbox-lag
+          runbook: docs/runbooks/alert-triage.md#p2-outbox-lag
+        annotations:
+          summary: Outbox lag is above 5 minutes
+          description: At least one service is more than 5 minutes behind publishing domain events.
+          impact: SMS, ledger, read models, and realtime updates may be delayed.
+          runbook_url: docs/runbooks/alert-triage.md#p2-outbox-lag
+
+      - alert: DlqGrowth
+        expr: max(queue_depth{queue=~".*dlq.*|.*DLQ.*"}) > 0
+        for: 10m
+        labels:
+          severity: P2
+          service: platform
+          owner: platform
+          slo: dlq-empty
+          runbook: docs/runbooks/alert-triage.md#p2-dlq-growth
+        annotations:
+          summary: Dead-letter queue is growing
+          description: A DLQ has retained messages for 10 minutes.
+          impact: Business side effects are not completing and may require approved replay.
+          runbook_url: docs/runbooks/alert-triage.md#p2-dlq-growth
+
+  - name: galatura.infrastructure
+    interval: 30s
+    rules:
+      - alert: BackupFailed
+        expr: |
+          time() - max(backup_last_success_timestamp_seconds) > 86400
+          or absent(backup_last_success_timestamp_seconds)
+        for: 30m
+        labels:
+          severity: P3
+          service: platform
+          owner: platform
+          slo: backup-success
+          runbook: docs/runbooks/alert-triage.md#p3-backup-failed
+        annotations:
+          summary: No successful backup within the expected window
+          description: The last successful backup is older than 24 hours or the backup metric is absent.
+          impact: Recovery point objective is at risk.
+          runbook_url: docs/runbooks/alert-triage.md#p3-backup-failed
+
+      - alert: CertificateExpiring
+        expr: min by (service) (certificate_not_after_timestamp_seconds) - time() < 1209600
+        for: 30m
+        labels:
+          severity: P3
+          service: platform
+          owner: platform
+          slo: certificate-validity
+          runbook: docs/runbooks/alert-triage.md#p3-certificate-expiry
+        annotations:
+          summary: Certificate expires in fewer than 14 days
+          description: A monitored TLS or signing certificate has less than 14 days of validity remaining.
+          impact: Access or signing may fail if renewal is not completed.
+          runbook_url: docs/runbooks/alert-triage.md#p3-certificate-expiry
+
+      - alert: DiskPressure
+        expr: |
+          1 - (
+            node_filesystem_avail_bytes{fstype!~"tmpfs|overlay", mountpoint!~"/run|/var/lib/containers"}
+            /
+            clamp_min(node_filesystem_size_bytes{fstype!~"tmpfs|overlay", mountpoint!~"/run|/var/lib/containers"}, 1)
+          ) > 0.7
+        for: 15m
+        labels:
+          severity: P4
+          service: platform
+          owner: platform
+          slo: disk-headroom
+          runbook: docs/runbooks/alert-triage.md#p4-disk-pressure
+        annotations:
+          summary: Disk usage is above 70%
+          description: A monitored filesystem has less than 30% available space for 15 minutes.
+          impact: Logs, queues, or backups may fail if the volume fills.
+          runbook_url: docs/runbooks/alert-triage.md#p4-disk-pressure
+
+  - name: galatura.business-guardrails
+    interval: 30s
+    rules:
+      - alert: LowStockItems
+        expr: max(low_stock_items) > 0
+        for: 30m
+        labels:
+          severity: P4
+          service: inventory
+          owner: inventory-service
+          slo: stock-availability
+          runbook: docs/runbooks/alert-triage.md#p4-low-stock
+        annotations:
+          summary: Low-stock items detected
+          description: Inventory has items below their reorder level for 30 minutes.
+          impact: Production or packing may be interrupted if replenishment is delayed.
+          runbook_url: docs/runbooks/alert-triage.md#p4-low-stock

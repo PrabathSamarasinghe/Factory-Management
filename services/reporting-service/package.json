@@ -1,0 +1,33 @@
+{
+  "name": "@galatura/reporting-service",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "start": "node dist/main.js",
+    "prisma:generate": "prisma generate"
+  },
+  "dependencies": {
+    "@galatura/platform-kit": "workspace:*",
+    "@nestjs/common": "11.2.10",
+    "@nestjs/core": "11.2.10",
+    "@nestjs/platform-express": "11.2.10",
+    "@prisma/adapter-pg": "7.10.1",
+    "@prisma/client": "7.10.1",
+    "@prisma/client-runtime-utils": "7.10.1",
+    "pg": "^8.23.1",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.2"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.0",
+    "@types/node": "^26.6.6",
+    "@types/pg": "^8.23.1",
+    "prisma": "7.10.1",
+    "typescript": "^7.0.2",
+    "vitest": "^5.1.0"
+  }
+}

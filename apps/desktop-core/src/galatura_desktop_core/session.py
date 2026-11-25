@@ -15,6 +15,7 @@ from .errors import ApiError, AuthenticationError
 from .fleet_api import FleetApi
 from .identity_api import IdentityApi
 from .inventory_api import InventoryApi
+from .monitoring_api import MonitoringApi
 from .notification_api import NotificationApi
 from .people_api import PeopleApi
 
@@ -39,6 +40,7 @@ class SessionManager(QObject):
         self.notification = NotificationApi(self.client)
         self.accounts = AccountsApi(self.client)
         self.inventory = InventoryApi(self.client)
+        self.monitoring = MonitoringApi(self.client)
         self.profile: dict[str, Any] = {}
         self.roles: list[str] = []
         self.permissions: list[str] = []

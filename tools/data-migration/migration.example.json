@@ -1,0 +1,49 @@
+{
+  "version": 1,
+  "environment": "staging",
+  "asOfDate": "2026-11-30",
+  "people": [
+    {
+      "externalId": "00000000-0000-4000-8000-000000000001",
+      "personType": "SUPPLIER",
+      "code": "LEGACY-SUP-0001",
+      "fullName": "Example Tea Supplier",
+      "supplierDetails": {
+        "businessName": "Example Tea Supplier",
+        "businessRegNo": "FAKE-REG-001",
+        "smsOptIn": false
+      }
+    },
+    {
+      "externalId": "00000000-0000-4000-8000-000000000002",
+      "personType": "EMPLOYEE",
+      "code": "LEGACY-EMP-0001",
+      "fullName": "Example Factory Employee",
+      "nationalId": "123456789V",
+      "phonePrimary": "0770000000",
+      "employeeDetails": {
+        "department": "Factory",
+        "designation": "Operator",
+        "employmentType": "PERMANENT",
+        "joinDate": "2020-01-01",
+        "wageType": "DAILY"
+      }
+    }
+  ],
+  "balances": [
+    {
+      "partyType": "SUPPLIER",
+      "externalId": "00000000-0000-4000-8000-000000000001",
+      "accountCode": "1100",
+      "debit": "1250.00",
+      "description": "Example supplier advance carried forward"
+    },
+    {
+      "partyType": "EMPLOYEE",
+      "externalId": "00000000-0000-4000-8000-000000000002",
+      "accountCode": "2010",
+      "credit": "1250.00",
+      "description": "Example wages payable carried forward"
+    }
+  ]
+}

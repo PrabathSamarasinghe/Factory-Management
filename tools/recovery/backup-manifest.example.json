@@ -1,0 +1,83 @@
+{
+  "version": 1,
+  "environments": {
+    "prod": {
+      "provider": "supabase",
+      "projectRef": "prodprojectref00000001",
+      "database": "postgres",
+      "schemas": [
+        "identity",
+        "people",
+        "attendance",
+        "fleet",
+        "collection",
+        "notification",
+        "realtime",
+        "accounts",
+        "inventory",
+        "reporting"
+      ],
+      "pitrEnabled": true,
+      "pitrWindowHours": 168,
+      "logicalExportSchedule": "15 2 * * *",
+      "encryption": true,
+      "retentionDays": 90,
+      "lastSuccessfulBackupAt": "2026-11-25T11:00:00.000Z",
+      "lastRestoreDrillAt": "2026-11-01T09:00:00.000Z",
+      "owner": "platform-ops",
+      "notes": "Authoritative Supabase project; Render Postgres backup guidance is legacy. No credentials in this manifest."
+    },
+    "staging": {
+      "provider": "supabase",
+      "projectRef": "stagingprojectref00001",
+      "database": "postgres",
+      "schemas": [
+        "identity",
+        "people",
+        "attendance",
+        "fleet",
+        "collection",
+        "notification",
+        "realtime",
+        "accounts",
+        "inventory",
+        "reporting"
+      ],
+      "pitrEnabled": true,
+      "pitrWindowHours": 72,
+      "logicalExportSchedule": "0 2 * * *",
+      "encryption": true,
+      "retentionDays": 30,
+      "lastSuccessfulBackupAt": "2026-11-24T10:00:00.000Z",
+      "lastRestoreDrillAt": "2026-10-28T09:00:00.000Z",
+      "owner": "platform-ops",
+      "notes": "Anonymised subset only. Never copy raw production data or biometric templates here."
+    },
+    "dev": {
+      "provider": "supabase",
+      "projectRef": "devprojectref0000001",
+      "database": "postgres",
+      "schemas": [
+        "identity",
+        "people",
+        "attendance",
+        "fleet",
+        "collection",
+        "notification",
+        "realtime",
+        "accounts",
+        "inventory",
+        "reporting"
+      ],
+      "pitrEnabled": true,
+      "pitrWindowHours": 24,
+      "logicalExportSchedule": "0 3 * * 0",
+      "encryption": true,
+      "retentionDays": 30,
+      "lastSuccessfulBackupAt": "2026-11-24T08:00:00.000Z",
+      "lastRestoreDrillAt": "2026-11-05T09:00:00.000Z",
+      "owner": "platform-ops",
+      "notes": "Synthetic data by default. Biometric templates are never copied into this project."
+    }
+  }
+}

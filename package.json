@@ -16,7 +16,14 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "prisma:check": "node tools/prisma/check-migrations.mjs",
-    "prisma:check:static": "node tools/prisma/check-migrations.mjs --static"
+    "prisma:check:static": "node tools/prisma/check-migrations.mjs --static",
+    "test:tools": "node --test tools/data-migration tools/load tools/recovery tools/security",
+    "security:check": "node tools/security/check-security.mjs --root . --strict",
+    "security:audit": "pnpm audit --audit-level high",
+    "load:validate": "node tools/load/load-test.mjs --scenario tools/load/scenarios/weighing-peak.json --dry-run && node tools/load/load-test.mjs --scenario tools/load/scenarios/sync-burst.json --dry-run",
+    "migration:validate": "node tools/data-migration/migrate.mjs --manifest tools/data-migration/migration.example.json --validate",
+    "migration:dry-run": "node tools/data-migration/migrate.mjs --manifest tools/data-migration/migration.example.json --dry-run",
+    "dr:check": "node tools/recovery/verify-backup-manifest.mjs --strict"
   },
   "devDependencies": {
     "prettier": "^3.10.1",

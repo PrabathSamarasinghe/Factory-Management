@@ -87,6 +87,30 @@ describe('accounts-service', () => {
     ).rejects.toThrow(/debits must equal credits/);
   });
 
+  it('creates then updates the same party and lists it', async () => {
+    const { accounts } = buildServices();
+    const externalId = uuidv7();
+
+    const created = await accounts.upsertParty(
+      { partyType: 'SUPPLIER', externalId, displayName: 'Legacy Supplier', code: 'LEG-1' },
+      context,
+    );
+    const updated = await accounts.upsertParty(
+      { partyType: 'SUPPLIER', externalId, displayName: 'Legacy Supplier Updated', code: 'LEG-2' },
+      context,
+    );
+
+    expect(updated.id).toBe(created.id);
+    expect(updated.displayName).toBe('Legacy Supplier Updated');
+    expect(updated.code).toBe('LEG-2');
+
+    const parties = await accounts.listParties('SUPPLIER');
+    expect(parties).toHaveLength(1);
+    expect(parties[0].id).toBe(created.id);
+    expect(parties[0].externalId).toBe(externalId);
+    expect(parties[0].displayName).toBe('Legacy Supplier Updated');
+  });
+
   it('generates and approves supplier bills from collected totals', async () => {
     const { prisma, billing, supplierId } = buildServices();
     await prisma.collectedTotal.create({

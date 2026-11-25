@@ -19,6 +19,18 @@ export class AccountsController {
     return { data: this.accounts.createAccount(body, contextFrom(req)) };
   }
 
+  @Get('parties')
+  parties(@Req() req: Request, @Query('partyType') partyType?: string) {
+    assertPermission(req, 'ledger:opening');
+    return { data: this.accounts.listParties(partyType) };
+  }
+
+  @Post('parties')
+  upsertParty(@Req() req: Request, @Body() body: any) {
+    assertPermission(req, 'ledger:opening');
+    return { data: this.accounts.upsertParty(body, contextFrom(req)) };
+  }
+
   @Patch('accounts/:id')
   updateAccount(@Req() req: Request, @Param('id') id: string, @Body() body: any) {
     assertPermission(req, 'coa:update');

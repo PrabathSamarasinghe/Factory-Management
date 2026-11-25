@@ -17,6 +17,7 @@ from .errors import (
 from .fleet_api import FleetApi
 from .identity_api import IdentityApi
 from .inventory_api import InventoryApi
+from .monitoring_api import MonitoringApi
 from .notification_api import NotificationApi
 from .people_api import PeopleApi
 from .session import SessionManager
@@ -33,6 +34,7 @@ __all__ = [
     "FleetApi",
     "IdentityApi",
     "InventoryApi",
+    "MonitoringApi",
     "NetworkError",
     "NotificationApi",
     "PeopleApi",

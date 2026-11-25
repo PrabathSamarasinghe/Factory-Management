@@ -1,0 +1,84 @@
+{
+  "name": "C4 weighing and finalisation peak",
+  "description": "Staging peak mix for factory weighing, trip finalisation and the C4 reads that depend on them.",
+  "targetEnv": "staging",
+  "basePath": "/api/v1",
+  "warmup": {
+    "durationSeconds": 10,
+    "concurrency": 5
+  },
+  "requests": [
+    {
+      "name": "record-weighing",
+      "method": "POST",
+      "path": "/api/v1/collection/weighings",
+      "weight": 35,
+      "headers": {
+        "Accept": "application/json",
+        "Content-Type": "application/json",
+        "Idempotency-Key": "{{clientWeighingId}}"
+      },
+      "body": {
+        "clientWeighingId": "{{clientWeighingId}}",
+        "tripId": "{{tripId}}",
+        "supplierId": "{{supplierId}}",
+        "grossWeightKg": "18.500",
+        "tareKg": "0.250",
+        "netWeightKg": "18.250",
+        "bagsCount": 30,
+        "deductionsKg": "0.000",
+        "qualityGrade": "A",
+        "scaleId": "LOAD-TEST-SCALE",
+        "weighedAt": "{{weighedAt}}"
+      }
+    },
+    {
+      "name": "finalize-trip",
+      "method": "POST",
+      "path": "/api/v1/collection/trips/{{tripId}}/finalize",
+      "weight": 10,
+      "headers": {
+        "Accept": "application/json",
+        "Content-Type": "application/json",
+        "Idempotency-Key": "{{clientWeighingId}}"
+      }
+    },
+    {
+      "name": "trip-readiness",
+      "method": "GET",
+      "path": "/api/v1/collection/trips/{{tripId}}/readiness",
+      "weight": 20,
+      "headers": {
+        "Accept": "application/json"
+      },
+      "expectedStatus": 200
+    },
+    {
+      "name": "driver-today",
+      "method": "GET",
+      "path": "/api/v1/fleet/trips/mine/today",
+      "weight": 20,
+      "headers": {
+        "Accept": "application/json"
+      },
+      "expectedStatus": 200
+    },
+    {
+      "name": "daily-totals",
+      "method": "GET",
+      "path": "/api/v1/collection/totals/daily?date={{date}}&supplierId={{supplierId}}",
+      "weight": 15,
+      "headers": {
+        "Accept": "application/json"
+      },
+      "expectedStatus": 200
+    }
+  ],
+  "thresholds": {
+    "durationSeconds": 120,
+    "concurrency": 25,
+    "maxErrorRatePct": 0.5,
+    "maxP95Ms": 300,
+    "minRequests": 1000
+  }
+}

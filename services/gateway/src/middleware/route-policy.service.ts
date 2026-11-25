@@ -14,6 +14,8 @@ export class RoutePolicyService {
     '/api/v1/identity/auth/password/reset',
   ];
 
+  private readonly c7AllowedPrefixes = ['/api/v1/monitor', '/api/v1/realtime', '/realtime', '/ws'];
+
   isPublicPath(path: string): boolean {
     return this.publicPaths.some((p) => path === p || path.startsWith(p));
   }
@@ -23,14 +25,11 @@ export class RoutePolicyService {
 
     if (isC7Client) {
       const isAllowedForC7 =
-        path.startsWith('/api/v1/monitor') ||
-        path.startsWith('/ws') ||
-        path.startsWith('/realtime') ||
-        path === '/healthz';
+        path === '/healthz' || this.c7AllowedPrefixes.some((prefix) => path.startsWith(prefix));
 
       if (!isAllowedForC7) {
         throw new ForbiddenError(
-          'Client policy violation: C7 / MONITOR clients are restricted to /monitor/* routes.',
+          'Client policy violation: C7 / MONITOR clients are restricted to monitor, realtime and health routes.',
         );
       }
     }

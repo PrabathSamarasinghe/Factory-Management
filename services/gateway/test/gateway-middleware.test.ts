@@ -319,4 +319,76 @@ describe('GatewayMiddleware & Security Attack Tests (Tasks 1.5 & 1.7)', () => {
     expect(getStatus()).toBe(403);
     expect(getBody().error.code).toBe('FORBIDDEN');
   });
+
+  it('allows a signed C7 token on real monitor and realtime endpoints', async () => {
+    const token = jwt.sign(
+      { sub: 'monitor-123', roles: ['MONITOR'], permissions: ['monitor:read'] },
+      privateKey,
+      {
+        algorithm: 'RS256',
+        keyid: 'test-key-1',
+        audience: 'galatura-services',
+        issuer: 'galatura-identity',
+        expiresIn: 300,
+      },
+    );
+
+    for (const path of [
+      '/api/v1/monitor/today',
+      '/api/v1/monitor/finance',
+      '/api/v1/realtime/tickets',
+      '/api/v1/realtime/catch-up',
+      '/ws/connect',
+    ]) {
+      const { req, res, getStatus } = mockHttp({
+        url: path,
+        headers: { authorization: `Bearer ${token}`, 'x-client-app': 'C7' },
+      });
+
+      let nextCalled = false;
+      await middleware.use(req, res, () => {
+        nextCalled = true;
+      });
+
+      expect(nextCalled).toBe(true);
+      expect(getStatus()).toBe(200);
+    }
+  });
+
+  it('blocks C7 and MONITOR role tokens from reporting and other service routes', async () => {
+    const token = jwt.sign(
+      { sub: 'monitor-123', roles: ['MONITOR'], permissions: ['monitor:read'] },
+      privateKey,
+      {
+        algorithm: 'RS256',
+        keyid: 'test-key-1',
+        audience: 'galatura-services',
+        issuer: 'galatura-identity',
+        expiresIn: 300,
+      },
+    );
+
+    for (const [path, clientApp] of [
+      ['/api/v1/reporting/monitor/today', 'C7'],
+      ['/api/v1/accounts/journal-entries', undefined],
+      ['/api/v1/inventory/items', undefined],
+    ] as const) {
+      const { req, res, getStatus, getBody } = mockHttp({
+        url: path,
+        headers: {
+          authorization: `Bearer ${token}`,
+          ...(clientApp ? { 'x-client-app': clientApp } : {}),
+        },
+      });
+
+      let nextCalled = false;
+      await middleware.use(req, res, () => {
+        nextCalled = true;
+      });
+
+      expect(nextCalled).toBe(false);
+      expect(getStatus()).toBe(403);
+      expect(getBody().error.code).toBe('FORBIDDEN');
+    }
+  });
 });

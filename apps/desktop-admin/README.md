@@ -11,7 +11,8 @@ bank accounts, consent records, document metadata, and the audit-log viewer.
   `http://localhost:3000`)
 - An identity-service user whose roles include the permissions you want to
   exercise (for example `USER_READ`, `USER_MANAGE`, `ROLE_MANAGE`,
-  `PERSON_READ`, `PERSON_MANAGE`, `AUDIT_READ`), plus the fleet codes
+   `PERSON_READ`, `PERSON_MANAGE`, `AUDIT_READ`, `monitor:read` and optionally
+   `monitor:finance` for the dashboard), plus the fleet codes
   `lorry:read`, `lorry:create`, `lorry:update`, `route:read`,
   `route:create`, `route:update`, `assignment:read`,
   `assignment:create`, `assignment:change`
@@ -59,6 +60,7 @@ The admin console uses the shared desktop-core settings:
 | --------------------------- | --------------------------------- | -------------------------------------------- |
 | `GALATURA_GATEWAY_URL`      | `http://localhost:3000`           | Gateway base URL                             |
 | Fleet API base              | `<gateway>/api/v1/fleet`          | Derived from `GALATURA_GATEWAY_URL`          |
+| Monitor API base            | `<gateway>/api/v1/monitor`        | Derived from `GALATURA_GATEWAY_URL`          |
 | `GALATURA_CLIENT_APP`       | `C1`                              | Client app code sent as `x-client-app`       |
 | `GALATURA_REQUEST_TIMEOUT`  | `20`                              | HTTP timeout in seconds                      |
 | `GALATURA_VERIFY_TLS`       | `true`                            | Verify TLS certificates                      |
@@ -73,8 +75,10 @@ the login screen.
 
 ## Screens
 
-- **Dashboard** - account status, role/permission summary, and headline
-  counts for users, roles, and people.
+- **Dashboard** - headline counts for users, roles and people, plus monitor
+  read models (kg collected, running trips, attendance, payables and stock
+  alerts) from `session.monitoring`; falls back to local data if the reporting
+  projections are unavailable.
 - **Users** - search/filter, create user, edit, activate/deactivate, reset
   password, assign roles.
 - **Roles & Permissions** - create roles, edit role details, manage role

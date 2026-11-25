@@ -1,0 +1,90 @@
+name: Security
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: security-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  security-static:
+    name: Static security checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 12.21.0
+          run_install: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: node tools/security/check-security.mjs --root . --strict
+      - run: node --test tools/security/check-security.test.mjs
+
+  dependency-audit:
+    name: Dependency audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 12.21.0
+          run_install: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm audit --audit-level high
+
+  container-scan:
+    name: Container image scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build and scan Dockerfiles
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t dockerfiles < <(git ls-files | grep -E '(^|/)Dockerfile(\.[^/]+)?$' || true)
+          if [ "${#dockerfiles[@]}" -eq 0 ]; then
+            echo "No Dockerfiles found; container image scan skipped."
+            exit 0
+          fi
+          for file in "${dockerfiles[@]}"; do
+            image="galatura-scan:$(printf '%s' "$file" | tr '/:.' '---')"
+            docker build --file "$file" --tag "$image" .
+            docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasecurity/trivy:0.62.1 image --exit-code 1 --ignore-unfixed --severity HIGH,CRITICAL "$image"
+          done
+
+  codeql:
+    name: CodeQL
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 12.21.0
+          run_install: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - uses: github/codeql-action/init@v3
+        with:
+          languages: javascript-typescript
+      - uses: github/codeql-action/autobuild@v3
+      - uses: github/codeql-action/analyze@v3
