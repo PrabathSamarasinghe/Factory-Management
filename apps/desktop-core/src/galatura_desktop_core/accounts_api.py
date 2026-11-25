@@ -187,6 +187,32 @@ class AccountsApi:
             params={"asOf": as_of},
         )
 
+    def journal_entry(self, entry_id: str) -> Any:
+        return self.client.get(self.base, f"/journal-entries/{entry_id}")
+
+    def journal_entry_source(self, entry_id: str) -> Any:
+        return self.client.get(self.base, f"/journal-entries/{entry_id}/source")
+
+    def report_drilldown(
+        self,
+        report_type: str,
+        row_id: str,
+        *,
+        as_of: str | None = None,
+        from_date: str | None = None,
+        to_date: str | None = None,
+    ) -> Any:
+        return self.client.get(
+            self.base,
+            f"/reports/{report_type}/drilldown",
+            params={
+                "rowId": row_id,
+                "asOf": as_of,
+                "from": from_date,
+                "to": to_date,
+            },
+        )
+
     def trial_balance(
         self,
         *,
@@ -230,6 +256,31 @@ class AccountsApi:
             params={"from": from_date, "to": to_date},
         )
 
+    def equity_changes(
+        self,
+        *,
+        from_date: str | None = None,
+        to_date: str | None = None,
+    ) -> Any:
+        return self.client.get(
+            self.base,
+            "/reports/equity-changes",
+            params={"from": from_date, "to": to_date},
+        )
+
+    def budget_vs_actual(
+        self,
+        *,
+        budget_id: str | None = None,
+        from_date: str | None = None,
+        to_date: str | None = None,
+    ) -> Any:
+        return self.client.get(
+            self.base,
+            "/reports/budget-vs-actual",
+            params={"budgetId": budget_id, "from": from_date, "to": to_date},
+        )
+
     def supplier_aging(self, *, as_of: str | None = None) -> Any:
         return self.client.get(
             self.base,
@@ -245,13 +296,20 @@ class AccountsApi:
         as_of: str | None = None,
         from_date: str | None = None,
         to_date: str | None = None,
+        budget_id: str | None = None,
     ) -> Any:
         binary = file_format in {"pdf", "xlsx"}
         accept = "application/octet-stream" if binary else "*/*"
         return self.client.get(
             self.base,
             f"/reports/{report_type}/export",
-            params={"format": file_format, "asOf": as_of, "from": from_date, "to": to_date},
+            params={
+                "format": file_format,
+                "asOf": as_of,
+                "from": from_date,
+                "to": to_date,
+                "budgetId": budget_id,
+            },
             headers={"Accept": accept},
             raw_response=binary,
         )
@@ -426,6 +484,22 @@ class AccountsApi:
 
     def close_period(self, period_id: str) -> dict[str, Any]:
         return self.client.post(self.base, f"/periods/{period_id}/close")
+
+    def year_end_close(
+        self,
+        fiscal_year_id: str,
+        idempotency_key: str | None = None,
+    ) -> dict[str, Any]:
+        return self.client.post(
+            self.base,
+            "/year-end/close",
+            json_body=self._payload(
+                {"fiscalYearId": fiscal_year_id},
+                idempotency_key,
+                inject_key=True,
+            ),
+            headers=self._headers(idempotency_key),
+        )
 
     def list_posting_rules(self) -> list[dict[str, Any]]:
         return self.client.get(self.base, "/posting-rules")

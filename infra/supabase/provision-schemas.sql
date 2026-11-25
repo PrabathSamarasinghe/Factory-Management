@@ -74,7 +74,7 @@ SELECT public.galatura_provision_service('attendance_service', 'attendance', :'a
 SELECT public.galatura_provision_service('fleet_service', 'fleet', :'fleet_password');
 SELECT public.galatura_provision_service('collection_service', 'collection', :'collection_password');
 SELECT public.galatura_provision_service('notification_service', 'notification', :'notification_password');
-SELECT public.galatura_provision_service('realtime_service', 'realtime', :'realtime_password');
+SELECT public.galatura_provision_service('realtime_service', 'realtime_service', :'realtime_password');
 SELECT public.galatura_provision_service('accounts_service', 'accounts', :'accounts_password');
 SELECT public.galatura_provision_service('inventory_service', 'inventory', :'inventory_password');
 SELECT public.galatura_provision_service('reporting_service', 'reporting', :'reporting_password');

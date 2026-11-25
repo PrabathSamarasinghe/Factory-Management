@@ -209,6 +209,10 @@ model Trip {
   endOdometerPhotoKey   String?    @map("end_odometer_photo_key") @db.Text
   startedBy             String?    @map("started_by") @db.Uuid
   endedBy               String?    @map("ended_by") @db.Uuid
+  overrideKind          String?    @map("override_kind") @db.Text
+  overrideReason        String?    @map("override_reason") @db.Text
+  overrideBy            String?    @map("override_by") @db.Uuid
+  overrideAt            DateTime?  @map("override_at") @db.Timestamptz(6)
   startLat              Decimal?   @map("start_lat") @db.Decimal(9, 6)
   startLng              Decimal?   @map("start_lng") @db.Decimal(9, 6)
   endLat                Decimal?   @map("end_lat") @db.Decimal(9, 6)
@@ -229,6 +233,7 @@ model Trip {
   @@index([lorryId, tripDate])
   @@index([ownerPersonId, tripDate])
   @@index([status])
+  @@index([overrideAt])
   @@map("trips")
   @@schema("fleet")
 }

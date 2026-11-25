@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from typing import Any
+from uuid import uuid4
 
 from galatura_desktop_core import SessionManager, human_error
 from galatura_desktop_core.widgets import (
@@ -196,6 +197,20 @@ class PeriodsPage(QWidget):
         period_actions.addWidget(self.close_button)
         period_actions.addStretch(1)
         periods_layout.addLayout(period_actions)
+
+        year_actions = QHBoxLayout()
+        year_actions.setSpacing(8)
+        year_actions.addWidget(QLabel("Fiscal year"))
+        self.year_combo = QComboBox()
+        self.year_combo.setMinimumWidth(240)
+        year_actions.addWidget(self.year_combo, 1)
+        self.year_end_button = primary_button("Year-end close")
+        self.year_end_button.clicked.connect(self.year_end_close)
+        self.year_combo.currentIndexChanged.connect(
+            lambda _index: self._update_actions()
+        )
+        year_actions.addWidget(self.year_end_button)
+        periods_layout.addLayout(year_actions)
         layout.addWidget(periods_frame, 1)
 
         bank_frame = QFrame()
@@ -267,7 +282,9 @@ class PeriodsPage(QWidget):
 
     def refresh(self) -> None:
         self.banner.clear()
-        can_periods = self.session.has_permission("period:lock")
+        can_periods = self.session.has_permission("period:lock") or self.session.has_permission(
+            "period:close"
+        )
         can_recon = self.session.has_permission("recon:read")
         if not can_periods and not can_recon:
             self.banner.show_error("Your role cannot view periods or reconciliations.")
@@ -276,17 +293,38 @@ class PeriodsPage(QWidget):
 
     def _load(self) -> dict[str, Any]:
         periods: list[dict[str, Any]] = []
+        years: list[dict[str, Any]] = []
         banks: list[dict[str, Any]] = []
         reconciliations: list[dict[str, Any]] = []
-        if self.session.has_permission("period:lock"):
+        if self.session.has_permission("period:lock") or self.session.has_permission(
+            "period:close"
+        ):
             periods = self.session.accounts.list_periods() or []
+            years = self.session.accounts.list_fiscal_years() or []
         if self.session.has_permission("recon:read"):
             banks = self.session.accounts.list_bank_accounts() or []
             reconciliations = self.session.accounts.list_reconciliations() or []
-        return {"periods": periods, "banks": banks, "reconciliations": reconciliations}
+        return {
+            "periods": periods,
+            "years": years,
+            "banks": banks,
+            "reconciliations": reconciliations,
+        }
 
     def _apply(self, data: dict[str, Any]) -> None:
         self.periods_table.set_rows(rows_of(data.get("periods"), "periods", "data"))
+        selected_year = self.year_combo.currentData()
+        self.year_combo.blockSignals(True)
+        self.year_combo.clear()
+        self.year_combo.addItem("Select fiscal year", None)
+        for year in rows_of(data.get("years"), "fiscalYears", "years", "data"):
+            self.year_combo.addItem(
+                str(year.get("name") or year.get("code") or year.get("id") or "-"),
+                year.get("id"),
+            )
+        year_index = self.year_combo.findData(selected_year) if selected_year else -1
+        self.year_combo.setCurrentIndex(year_index if year_index >= 0 else 0)
+        self.year_combo.blockSignals(False)
         self.bank_table.set_rows(rows_of(data.get("banks"), "bankAccounts", "data"))
         self.recon_table.set_rows(rows_of(data.get("reconciliations"), "reconciliations", "data"))
         self._update_actions()
@@ -299,6 +337,9 @@ class PeriodsPage(QWidget):
         selected_recon = self.recon_table.selected_row() is not None
         self.lock_button.setEnabled(can_period and selected_period)
         self.close_button.setEnabled(can_period and selected_period)
+        self.year_end_button.setEnabled(
+            self.session.has_permission("period:close") and self.year_combo.currentData() is not None
+        )
         self.new_bank_button.setEnabled(can_write)
         self.new_recon_button.setEnabled(can_write)
         self.add_line_button.setEnabled(can_write and selected_recon)
@@ -325,6 +366,28 @@ class PeriodsPage(QWidget):
         run_async(
             task,
             lambda _result: self._on_success(f"Period {action}ed."),
+            self._on_error,
+        )
+
+    def year_end_close(self) -> None:
+        if not self.session.has_permission("period:close"):
+            self.banner.show_error("Your role cannot close a fiscal year.")
+            return
+        year_id = str(self.year_combo.currentData() or "")
+        year_label = str(self.year_combo.currentText() or "the selected fiscal year")
+        if not year_id:
+            self.banner.show_info("Select a fiscal year first.")
+            return
+        warning = (
+            f"Close {year_label}? This posts the year-end entry that moves profit into "
+            "retained earnings. The close cannot be undone except by a reversing entry."
+        )
+        if not confirm(self, "Year-end close", warning):
+            return
+        key = str(uuid4())
+        run_async(
+            lambda: self.session.accounts.year_end_close(year_id, key),
+            lambda _result: self._on_success("Fiscal year closed."),
             self._on_error,
         )
 

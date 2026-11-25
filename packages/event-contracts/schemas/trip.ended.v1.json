@@ -34,6 +34,27 @@
       "type": "string",
       "pattern": "^\\d+(\\.\\d{1,1})?$"
     },
-    "endedBy": { "type": ["string", "null"], "format": "uuid" }
+    "endedBy": { "type": ["string", "null"], "format": "uuid" },
+    "override": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "reason", "by", "at", "readinessBypassed"],
+      "properties": {
+        "kind": { "type": "string", "const": "END_AFTER_TOTALS" },
+        "reason": { "type": "string", "minLength": 1 },
+        "by": { "type": ["string", "null"], "format": "uuid" },
+        "at": { "type": "string", "format": "date-time" },
+        "readinessBypassed": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["ready", "totalsFinalized", "pendingSupplierIds"],
+          "properties": {
+            "ready": { "type": "boolean" },
+            "totalsFinalized": { "type": "boolean" },
+            "pendingSupplierIds": { "type": "array", "items": { "type": "string" } }
+          }
+        }
+      }
+    }
   }
 }

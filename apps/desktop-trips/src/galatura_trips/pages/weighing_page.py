@@ -19,16 +19,24 @@ from galatura_desktop_core.widgets import (
     primary_button,
     run_async,
 )
+from PySide6.QtCore import Qt
+from PySide6.QtGui import QFont
 from PySide6.QtWidgets import (
     QComboBox,
+    QDialog,
     QFormLayout,
     QFrame,
     QHBoxLayout,
     QLabel,
     QLineEdit,
+    QMessageBox,
+    QTextEdit,
     QVBoxLayout,
     QWidget,
 )
+
+from ..receipt import WeighingSlip, print_text, render_label, render_receipt
+from ..scale import ScaleConfig, ScaleError, ScaleReading, load_scale_config, read_scale
 
 _DECIMAL_PATTERN = re.compile(r"^\d+(\.\d{1,3})?$")
 
@@ -59,6 +67,74 @@ def _now() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
 
+class LargeWeighingView(QDialog):
+    def __init__(self, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self.setWindowTitle("Large weighing view")
+        self.setMinimumSize(720, 420)
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(24, 24, 24, 24)
+        layout.setSpacing(16)
+
+        self.supplier_label = QLabel("No pickup selected.")
+        self.supplier_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(self.supplier_label)
+
+        self.net_label = QLabel("0.000 kg")
+        font = QFont()
+        font.setPointSize(72)
+        font.setBold(True)
+        self.net_label.setFont(font)
+        self.net_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.net_label.setStyleSheet("color: #37b57f;")
+        layout.addWidget(self.net_label, 1)
+
+        self.detail_label = QLabel("Gross 0.000 kg | Tare 0.000 kg")
+        self.detail_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(self.detail_label)
+
+        close_button = ghost_button("Close")
+        close_button.clicked.connect(self.close)
+        layout.addWidget(close_button, alignment=Qt.AlignmentFlag.AlignCenter)
+
+    def set_values(self, supplier: str, gross: str, tare: str, net: str) -> None:
+        self.supplier_label.setText(f"Supplier: {supplier or '-'}")
+        self.net_label.setText(f"{net or '0.000'} kg")
+        self.detail_label.setText(f"Gross {gross or '-'} kg | Tare {tare or '-'} kg")
+
+
+class SlipPreviewDialog(QDialog):
+    def __init__(self, title: str, text: str, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self.setWindowTitle(title)
+        self.setMinimumSize(620, 520)
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(18, 18, 18, 18)
+        layout.setSpacing(12)
+
+        self.preview = QTextEdit(text)
+        self.preview.setReadOnly(True)
+        layout.addWidget(self.preview, 1)
+
+        actions = QHBoxLayout()
+        self.print_button = primary_button("Print")
+        self.print_button.clicked.connect(self._print)
+        self.close_button = ghost_button("Close")
+        self.close_button.clicked.connect(self.close)
+        actions.addWidget(self.print_button)
+        actions.addWidget(self.close_button)
+        actions.addStretch(1)
+        layout.addLayout(actions)
+
+    def _print(self) -> None:
+        if not print_text(self.preview.toPlainText()):
+            QMessageBox.information(
+                self,
+                "Print",
+                "No printer hook is configured. The slip is available as text for the external printer.",
+            )
+
+
 class WeighingPage(QWidget):
     def __init__(self, session: SessionManager):
         super().__init__()
@@ -68,6 +144,12 @@ class WeighingPage(QWidget):
         self.last_readiness: dict[str, Any] = {}
         self._finalizing_trip_id: str | None = None
         self._selected_pickup_id: str | None = None
+        self.scale_config: ScaleConfig | None = None
+        self.large_view: LargeWeighingView | None = None
+        try:
+            self.scale_config = load_scale_config()
+        except ScaleError:
+            self.scale_config = None
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(28, 24, 28, 24)
@@ -86,6 +168,15 @@ class WeighingPage(QWidget):
         self.discrepancy_banner = StatusBanner()
         layout.addWidget(self.banner)
         layout.addWidget(self.discrepancy_banner)
+
+        self.big_net_label = QLabel("NET 0.000 kg")
+        big_font = QFont()
+        big_font.setPointSize(36)
+        big_font.setBold(True)
+        self.big_net_label.setFont(big_font)
+        self.big_net_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.big_net_label.setObjectName("Panel")
+        layout.addWidget(self.big_net_label)
 
         selections = QHBoxLayout()
         selections.setSpacing(10)
@@ -150,16 +241,26 @@ class WeighingPage(QWidget):
         actions.setSpacing(8)
         self.readiness_button = primary_button("Check readiness")
         self.readiness_button.clicked.connect(self.check_readiness)
+        self.read_scale_button = primary_button("Read from scale")
+        self.read_scale_button.clicked.connect(self.read_from_scale)
+        self.large_view_button = ghost_button("Large view")
+        self.large_view_button.clicked.connect(self.open_large_view)
+        self.print_slip_button = ghost_button("Print slip")
+        self.print_slip_button.clicked.connect(self.print_slip)
         self.submit_button = primary_button("Record weighing")
         self.submit_button.clicked.connect(self.record_weighing)
         self.finalize_button = danger_button("Finalize trip")
         self.finalize_button.clicked.connect(self.finalize_trip)
         actions.addWidget(self.readiness_button)
+        actions.addWidget(self.read_scale_button)
+        actions.addWidget(self.large_view_button)
+        actions.addWidget(self.print_slip_button)
         actions.addWidget(self.submit_button)
         actions.addWidget(self.finalize_button)
         actions.addStretch(1)
         layout.addLayout(actions)
 
+        self.read_scale_button.setEnabled(self.scale_config is not None)
         self.submit_button.setEnabled(self.session.has_permission("collection:weigh"))
         self.readiness_button.setEnabled(self.session.has_permission("collection:review"))
         self.finalize_button.setEnabled(self.session.has_permission("collection:finalize"))
@@ -294,8 +395,18 @@ class WeighingPage(QWidget):
             net = self._net_weight()
         except ValueError:
             self.net_label.setText("-")
+            self.big_net_label.setText("NET - kg")
             return
-        self.net_label.setText(format(net, "f"))
+        net_text = format(net, "f")
+        self.net_label.setText(net_text)
+        self.big_net_label.setText(f"NET {net_text} kg")
+        if self.large_view is not None:
+            self.large_view.set_values(
+                self._supplier_label(),
+                self.gross_input.text(),
+                self.tare_input.text(),
+                net_text,
+            )
 
         pickup = self.pickup_combo.currentData()
         if not pickup:
@@ -310,6 +421,77 @@ class WeighingPage(QWidget):
                 f"({format(net, 'f')} kg vs {format(field, 'f')} kg). "
                 "A discrepancy will be recorded."
             )
+
+    def _supplier_label(self) -> str:
+        pickup = self.pickup_combo.currentData()
+        if not pickup:
+            return "-"
+        return str(pickup.get("supplierRegNo") or pickup.get("supplierId") or "-")
+
+    def read_from_scale(self) -> None:
+        config = self.scale_config
+        if config is None:
+            self.banner.show_error(
+                "Scale settings are invalid; check the GALATURA_SCALE_* variables."
+            )
+            return
+
+        def work() -> tuple[ScaleReading, str]:
+            return read_scale(config), config.scale_id
+
+        run_async(work, self._apply_scale_reading, self._on_error)
+
+    def _apply_scale_reading(self, result: tuple[ScaleReading, str]) -> None:
+        reading, scale_id = result
+        self.gross_input.setText(reading.weight_text())
+        self.scale_input.setText(scale_id)
+        self.banner.show_success(f"Scale reading {reading.weight_text()} kg received.")
+
+    def open_large_view(self) -> None:
+        if self.large_view is None:
+            self.large_view = LargeWeighingView(self)
+            self.large_view.destroyed.connect(self._on_large_view_closed)
+        try:
+            net = format(self._net_weight(), "f")
+        except ValueError:
+            net = "-"
+        self.large_view.set_values(
+            self._supplier_label(),
+            self.gross_input.text(),
+            self.tare_input.text(),
+            net,
+        )
+        self.large_view.show()
+        self.large_view.raise_()
+
+    def _on_large_view_closed(self, *_args: Any) -> None:
+        self.large_view = None
+
+    def print_slip(self) -> None:
+        try:
+            gross = _decimal_text(self.gross_input.text(), "Gross weight")
+            net = format(self._net_weight(), "f")
+            bags_text = self.bags_input.text().strip()
+            if not bags_text.isdigit() or int(bags_text) <= 0:
+                raise ValueError("Bags must be a positive whole number.")
+            weighed_at = _timestamp(self.weighed_at_input.text())
+        except ValueError as exc:
+            self.banner.show_error(str(exc))
+            return
+        slip = WeighingSlip(
+            reference=self.client_weighing_id,
+            trip_id=str(self.trip_combo.currentData() or "-"),
+            supplier=self._supplier_label(),
+            gross_kg=gross,
+            tare_kg=format(_as_decimal(self.tare_input.text(), "Tare"), "f"),
+            net_kg=net,
+            bags=bags_text,
+            weighed_at=weighed_at,
+            scale_id=self.scale_input.text().strip() or "MANUAL",
+            grade=self.quality_input.text().strip(),
+        )
+        text = "\n\n".join([render_label(slip), render_receipt(slip)])
+        SlipPreviewDialog("Weighing slip", text, self).exec()
 
     def check_readiness(self) -> None:
         if not self.session.has_permission("collection:review"):

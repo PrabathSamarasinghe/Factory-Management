@@ -67,7 +67,7 @@ The gateway injects identity and permission headers. The app requires appropriat
 
 ## Offline behavior
 
-- A captured face is resized to 640 px JPEG and stored in the device queue only when the network or server is unavailable.
+- A captured face is resized to 640 px JPEG and stored in the device queue only when the network or server is unavailable. Queue contents, including face images, are encrypted with a Keychain/Keystore-held local data key before being written to AsyncStorage.
 - Queued marks are sent with the original `clientEventId`, so server-side idempotency prevents duplicate punches.
 - Automatic sync runs when connectivity returns and the app is signed in.
 - Permanent server rejections are marked in the Pending sync screen for review or deletion.

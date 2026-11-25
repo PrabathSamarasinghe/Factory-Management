@@ -1,7 +1,6 @@
 -- CreateSchema
 CREATE SCHEMA IF NOT EXISTS "fleet";
-
-SET search_path TO "fleet";
+SET search_path TO "fleet", public;
 
 CREATE EXTENSION IF NOT EXISTS btree_gist;
 
@@ -270,3 +269,5 @@ ALTER TABLE "trips" ADD CONSTRAINT "trips_route_id_fkey" FOREIGN KEY ("route_id"
 ALTER TABLE "trips" ADD CONSTRAINT "trips_lorry_id_fkey" FOREIGN KEY ("lorry_id") REFERENCES "lorries"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 ALTER TABLE "trip_events" ADD CONSTRAINT "trip_events_trip_id_fkey" FOREIGN KEY ("trip_id") REFERENCES "trips"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 ALTER TABLE "trip_events" ADD CONSTRAINT "trip_events_route_stop_id_fkey" FOREIGN KEY ("route_stop_id") REFERENCES "route_stops"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+RESET search_path;

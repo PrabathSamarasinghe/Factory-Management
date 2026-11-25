@@ -105,9 +105,12 @@ function AppShell() {
     let cancelled = false;
     let unregisterPush: () => void = () => undefined;
     (async () => {
-      unregisterPush = await registerForPushNotifications(() => {
-        emitRefresh();
-      });
+      unregisterPush = await registerForPushNotifications(
+        () => {
+          emitRefresh();
+        },
+        { client: apiClient },
+      );
       if (cancelled) return;
       const client = new RealtimeClient({
         baseUrl: getApiBaseUrl,

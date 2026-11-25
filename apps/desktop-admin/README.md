@@ -73,6 +73,14 @@ fails it stays on the login screen. A successful login / 2FA verification
 opens the main window; **Sign out** clears the stored tokens and returns to
 the login screen.
 
+The main-window status bar carries a language selector (English, Sinhala,
+Tamil) and a live data-changed indicator. When a subscribed realtime event
+arrives, the indicator offers **Refresh** for the current page. Realtime is
+skipped when the signed-in user has no subscribed channel permission. The
+session locks automatically after the configured idle period, with a shorter
+timeout while bank-detail or password dialogs are open. See
+`docs/internationalization.md` for the setting names and catalog pattern.
+
 ## Screens
 
 - **Dashboard** - headline counts for users, roles and people, plus monitor

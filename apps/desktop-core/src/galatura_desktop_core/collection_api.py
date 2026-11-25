@@ -42,6 +42,8 @@ class CollectionApi:
         body["netWeightKg"] = _weight_string(payload.get("netWeightKg"), "netWeightKg")
         if payload.get("deductionsKg") is not None:
             body["deductionsKg"] = _weight_string(payload["deductionsKg"], "deductionsKg")
+        scale_id = str(payload.get("scaleId") or "MANUAL").strip() or "MANUAL"
+        body["scaleId"] = scale_id
         return self.client.post(self.base, "/weighings", json_body=body)
 
     def finalize_trip(self, trip_id: str) -> list[dict[str, Any]]:

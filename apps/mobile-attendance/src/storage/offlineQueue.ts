@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { QueuedMark } from '../types';
+import { decryptQueue, encryptQueue, getQueueEncryptionKey } from './queueCrypto';
 
 const QUEUE_KEY = 'galatura.attendance.offlineQueue';
 const MAX_QUEUE_SIZE = 40;
@@ -10,15 +11,19 @@ async function readQueue(): Promise<QueuedMark[]> {
     return [];
   }
   try {
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
+    const key = await getQueueEncryptionKey();
+    return decryptQueue<QueuedMark>(raw, key);
   } catch {
     return [];
   }
 }
 
 async function writeQueue(items: QueuedMark[]): Promise<void> {
-  await AsyncStorage.setItem(QUEUE_KEY, JSON.stringify(items.slice(-MAX_QUEUE_SIZE)));
+  const key = await getQueueEncryptionKey();
+  await AsyncStorage.setItem(
+    QUEUE_KEY,
+    encryptQueue(items.slice(-MAX_QUEUE_SIZE), key),
+  );
 }
 
 export async function listQueue(): Promise<QueuedMark[]> {

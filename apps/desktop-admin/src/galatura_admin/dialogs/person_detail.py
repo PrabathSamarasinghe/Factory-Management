@@ -7,6 +7,7 @@ from typing import Any
 
 import requests
 from galatura_desktop_core import ApiError, SessionManager, human_error
+from galatura_desktop_core.idle_lock import sensitive_screen
 from galatura_desktop_core.widgets import (
     DataTable,
     FormDialog,
@@ -686,7 +687,9 @@ class PersonDetailDialog(QDialog):
 
     def _add_bank(self) -> None:
         dialog = BankAccountDialog(self)
-        if not dialog.exec():
+        with sensitive_screen():
+            accepted = dialog.exec()
+        if not accepted:
             return
         payload = dialog.payload
         run_async(

@@ -47,6 +47,7 @@ export function createFakePrisma(seed: Store = {}): any {
     'reportSection',
     'party',
     'budget',
+    'yearEndClosing',
     'accountsAuditLog',
     'outboxEvent',
     'processedEvent',
@@ -87,6 +88,19 @@ export function createFakePrisma(seed: Store = {}): any {
         const rows = collection(model).filter((row) => matches(row, args?.where ?? {}));
         for (const row of rows) Object.assign(row, args.data);
         return { count: rows.length };
+      },
+      delete: async (args: any) => {
+        const rows = collection(model);
+        const index = rows.findIndex((row) => matches(row, args?.where ?? {}));
+        if (index < 0) throw new Error(`${model} not found.`);
+        return clone(rows.splice(index, 1)[0]);
+      },
+      deleteMany: async (args: any) => {
+        const rows = collection(model);
+        const remaining = rows.filter((row) => !matches(row, args?.where ?? {}));
+        const count = rows.length - remaining.length;
+        stores[model] = remaining;
+        return { count };
       },
     };
   }

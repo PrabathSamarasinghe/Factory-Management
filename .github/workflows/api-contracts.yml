@@ -1,0 +1,37 @@
+name: API Contracts
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: api-contracts-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  openapi:
+    name: OpenAPI publication
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 12.21.0
+          run_install: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: node tools/openapi/generate.mjs --root . --check
+      - run: node tools/openapi/validate-specs.mjs --root .
+      - run: node --test tools/openapi/lib.test.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: openapi-specs
+          path: packages/contracts/openapi

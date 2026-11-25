@@ -1,7 +1,16 @@
-﻿export type MonitorPushHandler = (event: {
+﻿import { Platform } from 'react-native';
+import type { ApiClient } from '../api/client';
+import { registerPushToken, type PushPlatform } from './registration';
+
+export type MonitorPushHandler = (event: {
   type: 'monitor.refresh';
   source: string;
 }) => void;
+
+export interface PushNotificationOptions {
+  client?: Pick<ApiClient, 'call'>;
+  platform?: PushPlatform | string;
+}
 
 let messagingModule: any;
 try {
@@ -12,6 +21,7 @@ try {
 
 export async function registerForPushNotifications(
   onRefresh: MonitorPushHandler,
+  options: PushNotificationOptions = {},
 ): Promise<() => void> {
   if (!messagingModule) {
     return () => undefined;
@@ -23,7 +33,10 @@ export async function registerForPushNotifications(
     if (authStatus !== undefined && !enabled) {
       return () => undefined;
     }
-    await messaging.getToken?.();
+    const token = await messaging.getToken?.();
+    if (token && options.client) {
+      await registerPushToken(options.client, token, options.platform ?? Platform.OS);
+    }
     const unsubMessage = messaging.onMessage?.(async () => {
       onRefresh({ type: 'monitor.refresh', source: 'fcm-foreground' });
     });

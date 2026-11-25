@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from galatura_desktop_core import SessionManager, human_error
+from galatura_desktop_core.i18n import Translator
 from galatura_desktop_core.widgets import StatusBanner, primary_button, run_async
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
@@ -110,10 +111,13 @@ class TwoFactorDialog(QDialog):
 
 
 class LoginWindow(QWidget):
-    def __init__(self, session: SessionManager):
+    def __init__(self, session: SessionManager, translator: Translator | None = None):
         super().__init__()
         self.session = session
-        self.setWindowTitle("Galatura Admin Console - Sign in")
+        self.translator = translator or Translator(parent=self)
+        title = self.translator.tr("app.admin")
+        action = self.translator.tr("signin.title")
+        self.setWindowTitle(f"{title} - {action}")
         self.resize(460, 560)
         self.setMinimumSize(420, 520)
 
@@ -134,11 +138,11 @@ class LoginWindow(QWidget):
         )
         layout.addWidget(brand)
 
-        title = QLabel("Admin Console")
+        title = QLabel(self.translator.tr("product.admin"))
         title.setObjectName("Title")
         layout.addWidget(title)
 
-        subtitle = QLabel("Sign in to manage people, users and permissions.")
+        subtitle = QLabel(self.translator.tr("signin.subtitle.admin"))
         subtitle.setObjectName("Subtitle")
         subtitle.setWordWrap(True)
         layout.addWidget(subtitle)
@@ -147,14 +151,14 @@ class LoginWindow(QWidget):
         self.banner = StatusBanner()
         layout.addWidget(self.banner)
 
-        username_label = QLabel("Username or email")
+        username_label = QLabel(self.translator.tr("signin.username"))
         self.username_input = QLineEdit()
         self.username_input.setPlaceholderText("e.g. admin")
         self.username_input.returnPressed.connect(self._focus_password)
         layout.addWidget(username_label)
         layout.addWidget(self.username_input)
 
-        password_label = QLabel("Password")
+        password_label = QLabel(self.translator.tr("signin.password"))
         self.password_input = QLineEdit()
         self.password_input.setEchoMode(QLineEdit.EchoMode.Password)
         self.password_input.setPlaceholderText("Your password")
@@ -162,11 +166,11 @@ class LoginWindow(QWidget):
         layout.addWidget(password_label)
         layout.addWidget(self.password_input)
 
-        show_password = QCheckBox("Show password")
+        show_password = QCheckBox(self.translator.tr("signin.show_password"))
         show_password.toggled.connect(self._toggle_password)
         layout.addWidget(show_password)
 
-        self.sign_in_button = primary_button("Sign in")
+        self.sign_in_button = primary_button(self.translator.tr("signin.title"))
         self.sign_in_button.clicked.connect(self._sign_in)
         layout.addWidget(self.sign_in_button)
 
@@ -176,7 +180,7 @@ class LoginWindow(QWidget):
         gateway.setWordWrap(True)
         layout.addWidget(gateway)
 
-        footer = QLabel("Access is monitored and recorded in the audit log.")
+        footer = QLabel(self.translator.tr("signin.footer.admin"))
         footer.setObjectName("Muted")
         footer.setWordWrap(True)
         layout.addWidget(footer)

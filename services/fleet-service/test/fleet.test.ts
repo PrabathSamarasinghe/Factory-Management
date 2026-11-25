@@ -161,6 +161,34 @@ describe('fleet service', () => {
     outbox = new OutboxService(prisma);
   });
 
+  async function startAtFactory(readiness: {
+    ready: boolean;
+    totalsFinalized: boolean;
+    pendingSupplierIds: string[];
+  }) {
+    prisma.__tables.route.push({ id: ROUTE_ID, code: 'R1', name: 'Route 1' });
+    prisma.__tables.lorry.push({
+      id: LORRY_ID,
+      registrationNo: 'WP-1',
+      status: 'ACTIVE',
+      currentOdometerKm: '1000.0',
+    });
+    const collection = { check: async () => readiness } as unknown as CollectionReadinessClient;
+    const service = new TripsService(prisma, lorryAudit, outbox, collection);
+    const owner = context();
+    const trip = await service.start(
+      {
+        clientTripId: uuidv7(),
+        routeId: ROUTE_ID,
+        lorryId: LORRY_ID,
+        startOdometerKm: '1000.0',
+      },
+      owner,
+    );
+    await service.arriveFactory(trip.id, owner);
+    return { service, owner, trip };
+  }
+
   it('creates a lorry and reports overdue document and maintenance alerts', async () => {
     const service = new LorriesService(prisma, lorryAudit);
     const actor = context();
@@ -345,5 +373,91 @@ describe('fleet service', () => {
       'trip.started',
       'trip.ended',
     ]);
+  });
+
+  it('lets a non-owner with trip:end end a trip and persists endedBy', async () => {
+    const { service, owner, trip } = await startAtFactory({
+      ready: true,
+      totalsFinalized: true,
+      pendingSupplierIds: [],
+    });
+    const replacement = context();
+
+    const ended = await service.end(trip.id, { endOdometerKm: '1050.0' }, replacement);
+
+    expect(ended.endedBy).toBe(replacement.actorId);
+    expect(ended.ownerPersonId).toBe(owner.actorId);
+    expect(prisma.__tables.fleetAuditLog.at(-1).actorId).toBe(replacement.actorId);
+    expect(prisma.__tables.outboxEvent.at(-1).envelope.payload.endedBy).toBe(replacement.actorId);
+  });
+
+  it('rejects an end odometer below the start odometer', async () => {
+    const { service, trip } = await startAtFactory({
+      ready: true,
+      totalsFinalized: true,
+      pendingSupplierIds: [],
+    });
+
+    await expect(
+      service.end(trip.id, { endOdometerKm: '999.0' }, context()),
+    ).rejects.toBeInstanceOf(ValidationError);
+    expect(prisma.__tables.trip.find((row: any) => row.id === trip.id).status).toBe('AT_FACTORY');
+    expect(
+      prisma.__tables.outboxEvent.filter((row: any) => row.envelope.type === 'trip.ended'),
+    ).toHaveLength(0);
+  });
+
+  it('overrides a not-finalised trip with a recorded reason, actor and event data', async () => {
+    const { service, trip } = await startAtFactory({
+      ready: false,
+      totalsFinalized: false,
+      pendingSupplierIds: [uuidv7()],
+    });
+    const admin = context();
+    const reason = 'Weighbridge closed; supervisor authorised departure.';
+
+    await expect(service.end(trip.id, { endOdometerKm: '1075.0' }, admin)).rejects.toBeInstanceOf(
+      BusinessRuleError,
+    );
+    const ended = await service.overrideEnd(
+      trip.id,
+      { endOdometerKm: '1075.0', reason },
+      admin,
+    );
+
+    expect(ended.status).toBe('COMPLETED');
+    expect(ended.endedBy).toBe(admin.actorId);
+    expect(ended.overrideKind).toBe('END_AFTER_TOTALS');
+    expect(ended.overrideReason).toBe(reason);
+    expect(ended.overrideBy).toBe(admin.actorId);
+    expect(ended.overrideAt).toBeInstanceOf(Date);
+    const audit = prisma.__tables.fleetAuditLog.at(-1);
+    expect(audit.action).toBe('trip.ended.override');
+    expect(audit.metadata.reason).toBe(reason);
+    expect(audit.metadata.readiness.totalsFinalized).toBe(false);
+    const event = prisma.__tables.outboxEvent.at(-1).envelope;
+    expect(event.type).toBe('trip.ended');
+    expect(event.payload.override.reason).toBe(reason);
+    expect(event.payload.override.by).toBe(admin.actorId);
+    expect(event.payload.override.readinessBypassed.totalsFinalized).toBe(false);
+  });
+
+  it('rejects an override without a non-empty reason', async () => {
+    const { service, trip } = await startAtFactory({
+      ready: false,
+      totalsFinalized: false,
+      pendingSupplierIds: [],
+    });
+    const admin = context();
+
+    for (const reason of ['', '   ']) {
+      await expect(
+        service.overrideEnd(trip.id, { endOdometerKm: '1050.0', reason }, admin),
+      ).rejects.toBeInstanceOf(ValidationError);
+    }
+    expect(prisma.__tables.trip.find((row: any) => row.id === trip.id).status).toBe('AT_FACTORY');
+    expect(
+      prisma.__tables.fleetAuditLog.filter((row: any) => row.action === 'trip.ended.override'),
+    ).toHaveLength(0);
   });
 });

@@ -20,8 +20,11 @@ export function createTestPrisma() {
     wagesExpense: uuidv7(),
     employerEpfExpense: uuidv7(),
     employerEtfExpense: uuidv7(),
+    capital: uuidv7(),
+    retainedEarnings: uuidv7(),
   };
 
+  const fiscalYearId = uuidv7();
   const periodId = uuidv7();
   const supplierId = uuidv7();
   const personId = uuidv7();
@@ -87,16 +90,42 @@ export function createTestPrisma() {
         partyType: 'SUPPLIER',
         allowManualPosting: false,
       }),
-      account(accountIds.income, '4000', 'Made tea sales', 'INCOME', 'CREDIT'),
-      account(accountIds.purchases, '5000', 'Green leaf purchases', 'EXPENSE', 'DEBIT'),
-      account(accountIds.factoryConsumables, '5030', 'Factory consumables', 'EXPENSE', 'DEBIT'),
-      account(accountIds.wagesExpense, '5010', 'Direct factory labour', 'EXPENSE', 'DEBIT'),
-      account(accountIds.employerEpfExpense, '5110', 'Employer EPF expense', 'EXPENSE', 'DEBIT'),
-      account(accountIds.employerEtfExpense, '5120', 'Employer ETF expense', 'EXPENSE', 'DEBIT'),
+      account(accountIds.income, '4000', 'Made tea sales', 'INCOME', 'CREDIT', {
+        statement: 'PROFIT_LOSS',
+        sectionId: 'INCOME',
+      }),
+      account(accountIds.purchases, '5000', 'Green leaf purchases', 'EXPENSE', 'DEBIT', {
+        statement: 'PROFIT_LOSS',
+        sectionId: 'DIRECT_COSTS',
+      }),
+      account(accountIds.factoryConsumables, '5030', 'Factory consumables', 'EXPENSE', 'DEBIT', {
+        statement: 'PROFIT_LOSS',
+        sectionId: 'DIRECT_COSTS',
+      }),
+      account(accountIds.wagesExpense, '5010', 'Direct factory labour', 'EXPENSE', 'DEBIT', {
+        statement: 'PROFIT_LOSS',
+        sectionId: 'DIRECT_COSTS',
+      }),
+      account(accountIds.employerEpfExpense, '5110', 'Employer EPF expense', 'EXPENSE', 'DEBIT', {
+        statement: 'PROFIT_LOSS',
+        sectionId: 'ADMIN',
+      }),
+      account(accountIds.employerEtfExpense, '5120', 'Employer ETF expense', 'EXPENSE', 'DEBIT', {
+        statement: 'PROFIT_LOSS',
+        sectionId: 'ADMIN',
+      }),
+      account(accountIds.capital, '3000', 'Capital', 'EQUITY', 'CREDIT', {
+        statement: 'BALANCE_SHEET',
+        sectionId: 'EQUITY',
+      }),
+      account(accountIds.retainedEarnings, '3010', 'Retained earnings', 'EQUITY', 'CREDIT', {
+        statement: 'BALANCE_SHEET',
+        sectionId: 'EQUITY',
+      }),
     ],
     fiscalYear: [
       {
-        id: uuidv7(),
+        id: fiscalYearId,
         name: '2026',
         startDate: new Date('2026-01-01'),
         endDate: new Date('2026-12-31'),
@@ -106,7 +135,7 @@ export function createTestPrisma() {
     fiscalPeriod: [
       {
         id: periodId,
-        fiscalYearId: uuidv7(),
+        fiscalYearId,
         name: '2026-11',
         startDate: new Date('2026-11-01'),
         endDate: new Date('2026-11-30'),
@@ -165,5 +194,5 @@ export function createTestPrisma() {
     ],
   });
 
-  return { prisma, accountIds, periodId, supplierId, personId };
+  return { prisma, accountIds, periodId, fiscalYearId, supplierId, personId };
 }

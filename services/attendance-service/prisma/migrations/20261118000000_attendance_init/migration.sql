@@ -1,7 +1,6 @@
-﻿-- CreateSchema
+-- CreateSchema
 CREATE SCHEMA IF NOT EXISTS "attendance";
-
-SET search_path TO "attendance";
+SET search_path TO "attendance", public;
 
 -- CreateEnum
 CREATE TYPE "AttendanceEventType" AS ENUM ('CHECK_IN', 'CHECK_OUT');
@@ -322,4 +321,6 @@ CREATE INDEX "attendance_audit_logs_action_at_idx" ON "attendance_audit_logs"("a
 
 -- CreateIndex
 CREATE INDEX "outbox_events_published_at_created_at_idx" ON "outbox_events"("published_at", "created_at");
+
+RESET search_path;
 

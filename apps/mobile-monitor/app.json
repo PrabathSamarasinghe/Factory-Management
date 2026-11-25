@@ -1,4 +1,10 @@
 {
   "name": "GalaturaMonitor",
-  "displayName": "Galatura Monitor"
+  "displayName": "Galatura Monitor",
+  "android": {
+    "packageName": "com.galatura.monitor"
+  },
+  "ios": {
+    "bundleIdentifier": "com.galatura.monitor"
+  }
 }

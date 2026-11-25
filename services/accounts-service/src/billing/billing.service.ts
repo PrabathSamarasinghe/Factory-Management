@@ -237,8 +237,15 @@ export class BillingService {
     if (bill.status !== 'DRAFT') throw new ConflictError('Supplier bill is not a draft.');
 
     const lines = await this.prisma.supplierBillLine.findMany({ where: { billId: id } });
-    const purchaseAccount = await this.accounts.accountByCode('5000');
-    const payableAccount = await this.accounts.accountByCode('2000');
+    const entryDate = new Date(bill.periodTo);
+    const resolved = await this.accounts.resolvePostingAccounts({
+      eventType: 'supplier.bill.approved',
+      effectiveDate: entryDate,
+      condition: { sourceType: 'COLLECTION' },
+      fallback: { debitCode: '5000', creditCode: '2000' },
+    });
+    const purchaseAccountId = resolved.debitAccountId;
+    const payableAccountId = resolved.creditAccountId;
     const idempotencyKey = requiredString(
       input?.idempotencyKey ?? `supplier-bill:${id}`,
       'idempotencyKey',
@@ -253,13 +260,13 @@ export class BillingService {
         idempotencyKey,
         lines: [
           {
-            accountId: purchaseAccount.id,
+            accountId: purchaseAccountId,
             debit: moneyText(bill.grossAmount),
             credit: '0.00',
             memo: 'Green leaf purchases',
           },
           {
-            accountId: payableAccount.id,
+            accountId: payableAccountId,
             debit: '0.00',
             credit: moneyText(bill.netPayable),
             partyType: 'SUPPLIER',
@@ -273,6 +280,12 @@ export class BillingService {
 
     const deductions = Number(bill.grossAmount) - Number(bill.netPayable);
     if (roundMoney(deductions) > 0) {
+      const deductionAccounts = await this.accounts.resolvePostingAccounts({
+        eventType: 'supplier.bill.deductions',
+        effectiveDate: entryDate,
+        condition: { sourceType: 'COLLECTION' },
+        fallback: { debitCode: '2000', creditCode: '5000' },
+      });
       await this.journal.postSystem(
         {
           entryDate: dateKey(new Date(bill.periodTo)),
@@ -282,7 +295,7 @@ export class BillingService {
           idempotencyKey: `${idempotencyKey}:deductions`,
           lines: [
             {
-              accountId: payableAccount.id,
+              accountId: deductionAccounts.debitAccountId,
               debit: moneyText(deductions),
               credit: '0.00',
               partyType: 'SUPPLIER',
@@ -290,7 +303,7 @@ export class BillingService {
               memo: 'Supplier deductions applied',
             },
             {
-              accountId: purchaseAccount.id,
+              accountId: deductionAccounts.creditAccountId,
               debit: '0.00',
               credit: moneyText(deductions),
               memo: 'Supplier deductions applied',
@@ -412,9 +425,13 @@ export class BillingService {
     if (Number(amount) > remaining)
       throw new BusinessRuleError('Recovery amount exceeds the outstanding balance.');
 
-    const payableAccount = await this.accounts.accountByCode('2000');
     const contraCode = adjustment.adjustmentType === 'DEDUCTION' ? '5000' : '1100';
-    const contraAccount = await this.accounts.accountByCode(contraCode);
+    const resolved = await this.accounts.resolvePostingAccounts({
+      eventType: 'supplier.adjustment.recovered',
+      effectiveDate: new Date(adjustment.adjustmentDate),
+      condition: { adjustmentType: adjustment.adjustmentType },
+      fallback: { debitCode: '2000', creditCode: contraCode },
+    });
     const idempotencyKey = requiredString(
       input?.idempotencyKey ?? `adjustment-recovery:${id}:${amount}`,
       'idempotencyKey',
@@ -427,22 +444,23 @@ export class BillingService {
         sourceType: 'COLLECTION',
         sourceId: id,
         idempotencyKey,
-        lines: [
-          {
-            accountId: payableAccount.id,
-            debit: amount,
-            credit: '0.00',
-            partyType: 'SUPPLIER',
-            partyId: adjustment.supplierId,
-            memo: adjustment.description ?? 'Supplier adjustment recovery',
-          },
-          {
-            accountId: contraAccount.id,
-            debit: '0.00',
-            credit: amount,
-            memo: adjustment.description ?? 'Supplier adjustment recovery',
-          },
-        ],
+          lines: [
+            {
+              accountId: resolved.debitAccountId,
+              debit: amount,
+              credit: '0.00',
+              partyType: 'SUPPLIER',
+              partyId: adjustment.supplierId,
+              memo: adjustment.description ?? 'Supplier adjustment recovery',
+            },
+            {
+              accountId: resolved.creditAccountId,
+              debit: '0.00',
+              credit: amount,
+              memo: adjustment.description ?? 'Supplier adjustment recovery',
+            },
+          ],
+
       },
       context,
     );

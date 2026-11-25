@@ -115,6 +115,34 @@ class EndTripDialog(FormDialog):
         }
 
 
+class OverrideEndDialog(FormDialog):
+    def __init__(self, trip: dict[str, Any], parent: QWidget | None = None) -> None:
+        super().__init__("Admin override end", parent)
+        self.odometer_input = QLineEdit(str(trip.get("startOdometerKm") or ""))
+        self.reason_input = QLineEdit()
+        self.reason_input.setPlaceholderText("Reason is required and recorded in the audit trail")
+        self.remarks_input = QLineEdit()
+        self.add_row("End odometer (km)", self.odometer_input)
+        self.add_row("Reason (required)", self.reason_input)
+        self.add_row("Remarks (optional)", self.remarks_input)
+
+    def validate(self) -> str | None:
+        try:
+            _decimal_text(self.odometer_input.text(), "End odometer")
+        except ValueError as exc:
+            return str(exc)
+        if not self.reason_input.text().strip():
+            return "Reason is required."
+        return None
+
+    def collect(self) -> dict[str, Any]:
+        return {
+            "endOdometerKm": _decimal_text(self.odometer_input.text(), "End odometer"),
+            "reason": self.reason_input.text().strip(),
+            "remarks": self.remarks_input.text().strip() or None,
+        }
+
+
 class TripsPage(QWidget):
     def __init__(self, session: SessionManager):
         super().__init__()
@@ -145,6 +173,7 @@ class TripsPage(QWidget):
                 ("lorryLabel", "Lorry", 180),
                 ("startedAtLabel", "Started", 150),
                 ("endedAtLabel", "Ended", 150),
+                ("overrideReasonLabel", "Override reason", 220),
                 ("id", "Trip ID"),
             ]
         )
@@ -160,12 +189,15 @@ class TripsPage(QWidget):
         self.arrive_button.clicked.connect(self.arrive_factory)
         self.end_button = danger_button("End trip")
         self.end_button.clicked.connect(self.end_trip)
+        self.override_end_button = danger_button("Override end")
+        self.override_end_button.clicked.connect(self.override_end_trip)
         self.cancel_button = danger_button("Cancel trip")
         self.cancel_button.clicked.connect(self.cancel_trip)
         for button in (
             self.start_button,
             self.arrive_button,
             self.end_button,
+            self.override_end_button,
             self.cancel_button,
         ):
             actions.addWidget(button)
@@ -175,6 +207,7 @@ class TripsPage(QWidget):
         self.start_button.setEnabled(self.session.has_permission("trip:create"))
         self.arrive_button.setEnabled(self.session.has_permission("trip:update"))
         self.end_button.setEnabled(self.session.has_permission("trip:end"))
+        self.override_end_button.setEnabled(self.session.has_permission("trip:override-end"))
         self.cancel_button.setEnabled(self.session.has_permission("trip:cancel"))
 
     def refresh(self) -> None:
@@ -198,6 +231,7 @@ class TripsPage(QWidget):
                     "lorryLabel": lorry.get("registrationNo") or "-",
                     "startedAtLabel": format_datetime(trip.get("startedAt")),
                     "endedAtLabel": format_datetime(trip.get("endedAt")),
+                    "overrideReasonLabel": trip.get("overrideReason") or "-",
                 }
             )
         self.table.set_rows(rows)
@@ -243,6 +277,25 @@ class TripsPage(QWidget):
         run_async(
             lambda: self.session.fleet.end_trip(trip_id, payload),
             lambda _result: self._on_success("Trip ended."),
+            self._on_error,
+        )
+
+    def override_end_trip(self) -> None:
+        if not self.session.has_permission("trip:override-end"):
+            self.banner.show_error("Your role cannot override trip end rules.")
+            return
+        trip = self._selected_trip()
+        if not trip:
+            self.banner.show_info("Select a trip first.")
+            return
+        dialog = OverrideEndDialog(trip, self)
+        if not dialog.exec():
+            return
+        trip_id = str(trip.get("id") or "")
+        payload = dialog.payload
+        run_async(
+            lambda: self.session.fleet.override_end_trip(trip_id, payload),
+            lambda _result: self._on_success("Trip ended with a recorded override."),
             self._on_error,
         )
 

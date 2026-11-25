@@ -1,5 +1,6 @@
-import { Body, Controller, Get, Param, Patch, Post, Put, Query, Req } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Put, Query, Req } from '@nestjs/common';
 import type { Request } from 'express';
+import { ValidationError } from '@galatura/platform-kit';
 import { AccountsService } from './accounts.service';
 import { assertPermission, contextFrom } from '../common/request';
 
@@ -41,6 +42,12 @@ export class AccountsController {
   deactivateAccount(@Req() req: Request, @Param('id') id: string) {
     assertPermission(req, 'coa:deactivate');
     return { data: this.accounts.deactivateAccount(id, contextFrom(req)) };
+  }
+
+  @Delete('accounts/:id')
+  deleteAccount(@Req() req: Request, @Param('id') id: string) {
+    assertPermission(req, 'coa:deactivate');
+    return { data: this.accounts.deleteAccount(id, contextFrom(req)) };
   }
 
   @Get('fiscal-years')
@@ -95,6 +102,39 @@ export class AccountsController {
   createPostingRule(@Req() req: Request, @Body() body: any) {
     assertPermission(req, 'rules:write');
     return { data: this.accounts.createPostingRule(body, contextFrom(req)) };
+  }
+
+  @Get('posting-rules/resolve')
+  resolvePostingRule(@Req() req: Request, @Query() query: any) {
+    assertPermission(req, 'rules:read');
+    let condition: unknown;
+    if (typeof query?.condition === 'string' && query.condition) {
+      try {
+        condition = JSON.parse(query.condition);
+      } catch {
+        throw new ValidationError('condition must be valid JSON.');
+      }
+    }
+    return {
+      data: this.accounts.resolvePostingRule({
+        eventType: query?.eventType,
+        effectiveDate: query?.effectiveDate ?? new Date().toISOString().slice(0, 10),
+        version: query?.version === undefined ? undefined : Number(query.version),
+        condition,
+      }),
+    };
+  }
+
+  @Post('posting-rules/:id/approve')
+  approvePostingRule(@Req() req: Request, @Param('id') id: string) {
+    assertPermission(req, 'rules:write');
+    return { data: this.accounts.approvePostingRule(id, contextFrom(req)) };
+  }
+
+  @Post('posting-rules/:id/disable')
+  disablePostingRule(@Req() req: Request, @Param('id') id: string) {
+    assertPermission(req, 'rules:write');
+    return { data: this.accounts.disablePostingRule(id, contextFrom(req)) };
   }
 
   @Get('report-sections')

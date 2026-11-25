@@ -7,7 +7,7 @@ from datetime import date
 from decimal import Decimal, InvalidOperation
 from typing import Any
 
-from PySide6.QtWidgets import QWidget
+from PySide6.QtWidgets import QFileDialog, QWidget
 
 
 def today_text() -> str:
@@ -90,6 +90,30 @@ def account_label(account: dict[str, Any]) -> str:
 
 def row_id(row: dict[str, Any]) -> str:
     return str(row.get("id") or "")
+
+
+def entry_id_of(row: Any) -> str:
+    if not isinstance(row, dict):
+        return ""
+    for key in ("journalEntryId", "entryId", "journalEntry", "entry"):
+        value = row.get(key)
+        if isinstance(value, dict):
+            value = value.get("id") or value.get("entryId")
+        if value:
+            return str(value)
+    return ""
+
+
+def account_id_of(row: Any) -> str:
+    if not isinstance(row, dict):
+        return ""
+    for key in ("accountId", "account"):
+        value = row.get(key)
+        if isinstance(value, dict):
+            value = value.get("id")
+        if value:
+            return str(value)
+    return ""
 
 
 def value_text(row: dict[str, Any]) -> str:

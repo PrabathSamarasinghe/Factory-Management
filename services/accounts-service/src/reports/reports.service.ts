@@ -9,6 +9,8 @@ const REPORT_TYPES = [
   'profit-loss',
   'balance-sheet',
   'cash-flow',
+  'equity-changes',
+  'budget-vs-actual',
   'supplier-aging',
 ] as const;
 const FORMATS = ['json', 'csv', 'pdf', 'xlsx'] as const;
@@ -18,6 +20,10 @@ interface ReportFilters {
   from?: Date;
   to?: Date;
   periodId?: string;
+  compare?: string;
+  costCentreId?: string;
+  level?: string;
+  budgetId?: string;
 }
 
 @Injectable()
@@ -28,19 +34,27 @@ export class ReportsService {
   ) {}
 
   trialBalance(filters: ReportFilters) {
-    return this.journal.trialBalance(filters.asOf, filters.periodId);
+    return this.journal.trialBalance(filters.asOf, filters.periodId, filters);
   }
 
   profitLoss(filters: ReportFilters) {
-    return this.journal.profitLoss(filters.from, filters.to);
+    return this.journal.profitLoss(filters.from, filters.to, filters);
   }
 
   balanceSheet(filters: ReportFilters) {
-    return this.journal.balanceSheet(filters.asOf);
+    return this.journal.balanceSheet(filters.asOf, filters);
   }
 
   cashFlow(filters: ReportFilters) {
-    return this.journal.cashFlow(filters.from, filters.to);
+    return this.journal.cashFlow(filters.from, filters.to, filters);
+  }
+
+  equityChanges(filters: ReportFilters) {
+    return this.journal.equityChanges(filters.from, filters.to, filters);
+  }
+
+  budgetVsActual(filters: ReportFilters) {
+    return this.journal.budgetVsActual(filters.from, filters.to, filters);
   }
 
   supplierAging(filters: ReportFilters) {
@@ -88,14 +102,20 @@ export class ReportsService {
       from: query?.from ? dateOnly(query.from, 'from') : undefined,
       to: query?.to ? dateOnly(query.to, 'to') : undefined,
       periodId: typeof query?.periodId === 'string' ? query.periodId : undefined,
+      compare: typeof query?.compare === 'string' ? query.compare : undefined,
+      costCentreId: typeof query?.costCentreId === 'string' ? query.costCentreId : undefined,
+      level: typeof query?.level === 'string' ? query.level : undefined,
+      budgetId: typeof query?.budgetId === 'string' ? query.budgetId : undefined,
     };
   }
 
   private async build(type: string, filters: ReportFilters) {
-    if (type === 'trial-balance') return this.journal.trialBalance(filters.asOf, filters.periodId);
-    if (type === 'profit-loss') return this.journal.profitLoss(filters.from, filters.to);
-    if (type === 'balance-sheet') return this.journal.balanceSheet(filters.asOf);
-    if (type === 'cash-flow') return this.journal.cashFlow(filters.from, filters.to);
+    if (type === 'trial-balance') return this.trialBalance(filters);
+    if (type === 'profit-loss') return this.profitLoss(filters);
+    if (type === 'balance-sheet') return this.balanceSheet(filters);
+    if (type === 'cash-flow') return this.cashFlow(filters);
+    if (type === 'equity-changes') return this.equityChanges(filters);
+    if (type === 'budget-vs-actual') return this.budgetVsActual(filters);
     return this.billing.supplierAging(filters.asOf);
   }
 

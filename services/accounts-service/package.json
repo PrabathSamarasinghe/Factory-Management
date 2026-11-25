@@ -8,7 +8,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "start": "node dist/main.js",
-    "prisma:generate": "prisma generate"
+    "prisma:generate": "prisma generate",
+    "integrity:nightly": "pnpm run build && node scripts/nightly-integrity.cjs"
   },
   "dependencies": {
     "@galatura/platform-kit": "workspace:*",

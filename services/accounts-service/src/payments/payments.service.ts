@@ -226,9 +226,12 @@ export class PaymentsService {
       'idempotencyKey',
     );
     const payableCode = payment.payeeType === 'EMPLOYEE' ? '2010' : '2000';
-    const payableAccount = await this.accounts.accountByCode(payableCode);
-    const bankAccount = await this.accounts.accountByCode('1010');
-
+    const resolved = await this.accounts.resolvePostingAccounts({
+      eventType: 'payment.paid',
+      effectiveDate: paidDate,
+      condition: { payeeType: payment.payeeType },
+      fallback: { debitCode: payableCode, creditCode: '1010' },
+    });
     const entry = await this.journal.postSystem(
       {
         entryDate: dateKey(paidDate),
@@ -236,22 +239,23 @@ export class PaymentsService {
         sourceType: 'SUPPLIER_PAYMENT',
         sourceId: payment.id,
         idempotencyKey,
-        lines: [
-          {
-            accountId: payableAccount.id,
-            debit: moneyText(payment.amount),
-            credit: '0.00',
-            partyType: payment.payeeType,
-            partyId: payment.payeeId,
-            memo: reference ?? 'Payment settlement',
-          },
-          {
-            accountId: bankAccount.id,
-            debit: '0.00',
-            credit: moneyText(payment.amount),
-            memo: reference ?? 'Payment settlement',
-          },
-        ],
+          lines: [
+            {
+              accountId: resolved.debitAccountId,
+              debit: moneyText(payment.amount),
+              credit: '0.00',
+              partyType: payment.payeeType,
+              partyId: payment.payeeId,
+              memo: reference ?? 'Payment settlement',
+            },
+            {
+              accountId: resolved.creditAccountId,
+              debit: '0.00',
+              credit: moneyText(payment.amount),
+              memo: reference ?? 'Payment settlement',
+            },
+          ],
+
       },
       context,
     );

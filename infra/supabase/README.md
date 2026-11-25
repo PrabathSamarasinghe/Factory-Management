@@ -10,28 +10,28 @@ Render remains the application and Redis host. Supabase is not provisioned by
 
 ## Topology
 
-| Environment | Supabase project | Database | Schemas |
-| ----------- | ---------------- | -------- | ------- |
-| `dev`       | `<dev-project>`  | `postgres` | one per service |
+| Environment | Supabase project    | Database   | Schemas         |
+| ----------- | ------------------- | ---------- | --------------- |
+| `dev`       | `<dev-project>`     | `postgres` | one per service |
 | `staging`   | `<staging-project>` | `postgres` | one per service |
-| `prod`      | `<prod-project>` | `postgres` | one per service |
+| `prod`      | `<prod-project>`    | `postgres` | one per service |
 
 The dashboard project reference is part of every pooler username
 (`<role>.<project-ref>`). Do not share one project across environments: secrets,
 PITR, and data classification must stay separate.
 
-| Service                | Schema         | Role                   |
-| ---------------------- | -------------- | ---------------------- |
-| `identity-service`     | `identity`     | `identity_service`     |
-| `people-service`       | `people`       | `people_service`       |
-| `attendance-service`   | `attendance`   | `attendance_service`   |
-| `fleet-service`        | `fleet`        | `fleet_service`        |
-| `collection-service`   | `collection`   | `collection_service`   |
-| `notification-service` | `notification` | `notification_service` |
-| `realtime-service`     | `realtime`     | `realtime_service`     |
-| `accounts-service`     | `accounts`     | `accounts_service`     |
-| `inventory-service`    | `inventory`    | `inventory_service`    |
-| `reporting-service`    | `reporting`    | `reporting_service`    |
+| Service                | Schema             | Role                   |
+| ---------------------- | ------------------ | ---------------------- |
+| `identity-service`     | `identity`         | `identity_service`     |
+| `people-service`       | `people`           | `people_service`       |
+| `attendance-service`   | `attendance`       | `attendance_service`   |
+| `fleet-service`        | `fleet`            | `fleet_service`        |
+| `collection-service`   | `collection`       | `collection_service`   |
+| `notification-service` | `notification`     | `notification_service` |
+| `realtime-service`     | `realtime_service` | `realtime_service`     |
+| `accounts-service`     | `accounts`         | `accounts_service`     |
+| `inventory-service`    | `inventory`        | `inventory_service`    |
+| `reporting-service`    | `reporting`        | `reporting_service`    |
 
 `gateway` has no database. Prisma's `_prisma_migrations` table lives in the
 service's own schema because each service declares only its schema in

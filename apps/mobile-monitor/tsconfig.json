@@ -2,7 +2,11 @@
   "extends": "@react-native/typescript-config",
   "compilerOptions": {
     "lib": ["ES2022", "DOM"],
-    "types": ["jest", "node"]
+    "types": ["jest", "node"],
+    "paths": {
+      "@galatura/mobile-core": ["../mobile-core/src/index.ts"],
+      "@galatura/api-client-ts": ["../../packages/api-client-ts/src/index.ts"]
+    }
   },
   "include": ["**/*.ts", "**/*.tsx"],
   "exclude": ["**/node_modules", "**/Pods"]

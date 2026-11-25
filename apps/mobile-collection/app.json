@@ -1,4 +1,10 @@
 {
   "name": "GalaturaCollection",
-  "displayName": "Galatura Collection"
+  "displayName": "Galatura Collection",
+  "android": {
+    "packageName": "com.galatura.collection"
+  },
+  "ios": {
+    "bundleIdentifier": "com.galatura.collection"
+  }
 }

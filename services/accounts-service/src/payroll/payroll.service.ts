@@ -261,10 +261,15 @@ export class PayrollService {
     const items = await this.prisma.payrollItem.findMany({ where: { runId: id } });
     if (items.length === 0) throw new BusinessRuleError('Payroll run has no employees.');
 
-    const wagesAccount = await this.accounts.accountByCode('5010');
+    const entryDate = new Date(run.periodTo);
+    const resolved = await this.accounts.resolvePostingAccounts({
+      eventType: 'payroll.approved',
+      effectiveDate: entryDate,
+      condition: { runType: run.runType },
+      fallback: { debitCode: '5010', creditCode: '2010' },
+    });
     const employerEpfAccount = await this.accounts.accountByCode('5110');
     const employerEtfAccount = await this.accounts.accountByCode('5120');
-    const wagesPayableAccount = await this.accounts.accountByCode('2010');
     const epfPayableAccount = await this.accounts.accountByCode('2020');
     const etfPayableAccount = await this.accounts.accountByCode('2030');
     const deductionsAccount = await this.accounts.accountByCode('2040');
@@ -290,11 +295,11 @@ export class PayrollService {
           sourceId: item.personId,
           idempotencyKey: `${idempotencyKey}:${item.id}`,
           lines: [
-            { accountId: wagesAccount.id, debit: moneyText(gross), credit: '0.00' },
+            { accountId: resolved.debitAccountId, debit: moneyText(gross), credit: '0.00' },
             { accountId: employerEpfAccount.id, debit: moneyText(epfEmployer), credit: '0.00' },
             { accountId: employerEtfAccount.id, debit: moneyText(etf), credit: '0.00' },
             {
-              accountId: wagesPayableAccount.id,
+              accountId: resolved.creditAccountId,
               debit: '0.00',
               credit: moneyText(net),
               partyType: 'EMPLOYEE',

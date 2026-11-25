@@ -22,6 +22,8 @@ import { LeaveController } from './leave/leave.controller';
 import { LeaveService } from './leave/leave.service';
 import { DevicesController } from './devices/devices.controller';
 import { DevicesService } from './devices/devices.service';
+import { ConsentWithdrawalController } from './consent-withdrawal/consent-withdrawal.controller';
+import { ConsentWithdrawalService } from './consent-withdrawal/consent-withdrawal.service';
 
 @Module({
   controllers: [
@@ -32,6 +34,7 @@ import { DevicesService } from './devices/devices.service';
     CorrectionsController,
     LeaveController,
     DevicesController,
+    ConsentWithdrawalController,
   ],
   providers: [
     PrismaService,
@@ -48,6 +51,7 @@ import { DevicesService } from './devices/devices.service';
     CorrectionsService,
     LeaveService,
     DevicesService,
+    ConsentWithdrawalService,
     {
       provide: FACE_ENGINE,
       useFactory: createFaceEngine,

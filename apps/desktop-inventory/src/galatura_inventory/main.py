@@ -21,6 +21,8 @@ def main(argv: list[str] | None = None) -> None:
     os.environ.setdefault("GALATURA_KEYRING_ACCOUNT", "store-keeper")
 
     from galatura_desktop_core import SessionManager, apply_theme
+    from galatura_desktop_core.i18n import Translator
+    from galatura_desktop_core.settings import DesktopSettings
     from galatura_desktop_core.widgets import run_async
     from PySide6.QtCore import QObject, Slot
     from PySide6.QtWidgets import QApplication
@@ -33,7 +35,9 @@ def main(argv: list[str] | None = None) -> None:
             super().__init__()
             self.app = app
             self.session = SessionManager()
-            self.login_window = LoginWindow(self.session)
+            self.settings = DesktopSettings("inventory")
+            self.translator = Translator(self.settings, self)
+            self.login_window = LoginWindow(self.session, self.translator)
             self.main_window: MainWindow | None = None
 
             self.session.logged_in.connect(self._on_logged_in)
@@ -51,7 +55,7 @@ def main(argv: list[str] | None = None) -> None:
         @Slot(dict)
         def _on_logged_in(self, _profile: dict) -> None:
             previous = self.main_window
-            self.main_window = MainWindow(self.session)
+            self.main_window = MainWindow(self.session, self.settings, self.translator)
             self.main_window.show()
             self.login_window.hide()
             if previous is not None:

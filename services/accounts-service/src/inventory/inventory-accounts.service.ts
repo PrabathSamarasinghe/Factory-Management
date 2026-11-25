@@ -124,13 +124,26 @@ export class InventoryAccountsService {
       const item = row as Record<string, unknown>;
       const debitCode = requiredString(item[debitCodeField], `line.${debitCodeField}`);
       const creditCode = requiredString(item[creditCodeField], `line.${creditCodeField}`);
-      const debitAccount = await this.accounts.accountByCode(debitCode);
-      const creditAccount = await this.accounts.accountByCode(creditCode);
+      const resolved = await this.accounts.resolvePostingAccounts({
+        eventType:
+          debitCodeField === 'inventoryAccountCode'
+            ? 'inventory.purchase.received'
+            : 'inventory.issue.posted',
+        effectiveDate: new Date(
+          typeof payload.receivedDate === 'string'
+            ? payload.receivedDate
+            : typeof payload.issueDate === 'string'
+              ? payload.issueDate
+              : new Date().toISOString().slice(0, 10),
+        ),
+        condition: { debitAccountCode: debitCode, creditAccountCode: creditCode },
+        fallback: { debitCode, creditCode },
+      });
       lines.push({
         itemId: uuid(item.itemId, 'line.itemId'),
         value: money(item.value, 'line.value'),
-        debitAccountId: debitAccount.id,
-        creditAccountId: creditAccount.id,
+        debitAccountId: resolved.debitAccountId,
+        creditAccountId: resolved.creditAccountId,
       });
     }
 

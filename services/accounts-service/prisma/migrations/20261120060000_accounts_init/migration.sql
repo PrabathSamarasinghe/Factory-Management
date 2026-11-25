@@ -1,6 +1,6 @@
 CREATE SCHEMA IF NOT EXISTS "accounts";
 
-SET LOCAL search_path TO "accounts";
+SET search_path TO "accounts", public;
 
 CREATE TYPE "AccountType" AS ENUM ('ASSET', 'LIABILITY', 'EQUITY', 'INCOME', 'EXPENSE');
 CREATE TYPE "NormalBalance" AS ENUM ('DEBIT', 'CREDIT');
@@ -321,7 +321,7 @@ CREATE TABLE "report_sections" (
     "sign" INTEGER NOT NULL DEFAULT 1,
     "is_subtotal" BOOLEAN NOT NULL DEFAULT false,
     "formula" TEXT,
-    "updated_at" TIMESTAMPTZ(6) NOT NULL,
+    "updated_at" TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT "report_sections_pkey" PRIMARY KEY ("id")
 );
 
@@ -609,3 +609,5 @@ VALUES
     (gen_random_uuid(), 'DIRECT_COSTS', 'PROFIT_LOSS', 'Direct costs', NULL, 200, 1, true),
     (gen_random_uuid(), 'ADMIN', 'PROFIT_LOSS', 'Administrative expenses', NULL, 300, 1, true)
 ON CONFLICT ("code") DO NOTHING;
+
+RESET search_path;

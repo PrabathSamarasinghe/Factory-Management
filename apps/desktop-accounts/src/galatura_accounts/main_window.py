@@ -27,6 +27,7 @@ from .pages.payments_page import PaymentsPage
 from .pages.payroll_page import PayrollPage
 from .pages.periods_page import PeriodsPage
 from .pages.reports_page import ReportsPage
+from .realtime import AccountsUpdatesClient
 
 
 class MainWindow(QMainWindow):
@@ -139,11 +140,24 @@ class MainWindow(QMainWindow):
             f"Gateway: {session.config.gateway_url} | App: {session.config.client_app}"
         )
         self.gateway_status.setObjectName("Muted")
+        self.live_status = QLabel("Realtime: off")
+        self.live_status.setObjectName("Muted")
+        self.realtime_refresh_button = ghost_button("Refresh data")
+        self.realtime_refresh_button.clicked.connect(self.refresh_current_page)
         self.user_status = QLabel(f"User: {session.display_name}")
         self.user_status.setObjectName("Muted")
         self.status_bar.addWidget(self.gateway_status, 1)
+        self.status_bar.addPermanentWidget(self.live_status)
+        self.status_bar.addPermanentWidget(self.realtime_refresh_button)
         self.status_bar.addPermanentWidget(self.user_status)
         self.status_bar.showMessage("Ready")
+
+        self._data_changed = False
+        self.realtime = AccountsUpdatesClient(session)
+        self.realtime.data_changed.connect(self._on_data_changed)
+        self.realtime.status_changed.connect(self._on_realtime_status)
+        if session.has_permission("ledger:read") or session.has_permission("payment:read"):
+            self.realtime.start()
 
         self._switch(0)
 
@@ -156,9 +170,28 @@ class MainWindow(QMainWindow):
         if callable(refresh):
             refresh()
 
+    def _on_realtime_status(self, text: str) -> None:
+        self.live_status.setText(text)
+
+    def _on_data_changed(self, _payload: object) -> None:
+        self._data_changed = True
+        self.live_status.setText("Data changed - refresh active view")
+        self.status_bar.showMessage("Accounts data changed", 5000)
+
+    def refresh_current_page(self) -> None:
+        page = self.pages[self.stack.currentIndex()]
+        refresh = getattr(page, "refresh", None)
+        if callable(refresh):
+            refresh()
+        self._data_changed = False
+        self.live_status.setText("Live: view refreshed")
+        self.status_bar.showMessage("Accounts data refreshed", 3000)
+
     def _sign_out(self) -> None:
         if confirm(self, "Sign out", "Sign out of the accounts client?"):
+            self.realtime.stop()
             self.session.logout()
 
     def closeEvent(self, event) -> None:
+        self.realtime.stop()
         event.accept()

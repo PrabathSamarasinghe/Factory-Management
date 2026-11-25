@@ -13,6 +13,21 @@ jest.mock('@react-native-async-storage/async-storage', () =>
   require('@react-native-async-storage/async-storage/jest'),
 );
 
+jest.mock('react-native-keychain', () => {
+  const store = new Map<string, string>();
+  return {
+    ACCESSIBLE: { WHEN_UNLOCKED_THIS_DEVICE_ONLY: 'WHEN_UNLOCKED_THIS_DEVICE_ONLY' },
+    setGenericPassword: jest.fn(async (_username: string, password: string, options: any) => {
+      store.set(options.service, password);
+      return { service: options.service };
+    }),
+    getGenericPassword: jest.fn(async (options: any) => {
+      const password = store.get(options.service);
+      return password ? { username: 'key', password } : false;
+    }),
+  };
+});
+
 function queued(id: string): QueuedMark {
   return {
     id,
@@ -56,6 +71,17 @@ describe('offline attendance queue', () => {
     expect(items).toHaveLength(40);
     expect(items[0].id).toBe('5');
     expect(items[39].id).toBe('44');
+  });
+
+  it('encrypts face images in the persisted queue', async () => {
+    const item = queued('secure');
+    item.payload.imageBase64 = 'FACE-IMAGE-SECRET';
+    await enqueueMark(item);
+
+    const raw = await AsyncStorage.getItem('galatura.attendance.offlineQueue');
+    expect(raw).toBeTruthy();
+    expect(raw).not.toContain('FACE-IMAGE-SECRET');
+    expect((await listQueue())[0].payload.imageBase64).toBe('FACE-IMAGE-SECRET');
   });
 
   it('recovers from corrupt queue data', async () => {

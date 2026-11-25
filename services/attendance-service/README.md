@@ -29,9 +29,10 @@ Apply the migration with the repository Prisma workflow. The initial migration i
 | `PORT` | `3003` | HTTP port |
 | `PLATFORM_MASTER_KEY` | development fallback | AES-GCM key material for face templates |
 | `PEOPLE_SERVICE_URL` | `http://localhost:3002` | Direct people-service URL for consent checks |
+| `INTERNAL_SERVICE_TOKEN` | unset | Shared secret accepted on `x-internal-token` for internal event endpoints |
 | `ATTENDANCE_FACE_ENGINE` | `stub` | `stub` for tests/development, `http` for an external engine |
 | `FACE_ENGINE_URL` | unset | Required when `ATTENDANCE_FACE_ENGINE=http` |
-| `FACE_ENGINE_API_KEY` | unset | Optional bearer token for the HTTP face engine |
+| `FACE_ENGINE_API_KEY` | unset | Optional `x-api-key` header value for the HTTP face engine |
 | `ATTENDANCE_FACE_THRESHOLD` | `0.82` | Minimum cosine similarity for a match |
 | `ATTENDANCE_LIVENESS_THRESHOLD` | `0.8` | Minimum liveness score |
 | `ATTENDANCE_TIMEZONE_OFFSET_MINUTES` | `330` | Factory-local timezone offset |
@@ -77,6 +78,7 @@ Gateway-injected headers provide the caller identity and permissions. The servic
 | `GET` | `/devices` | `device:read` |
 | `POST` | `/devices` | `device:manage` |
 | `PATCH` | `/devices/:id/status` | `device:manage` |
+| `POST` | `/internal/consent-withdrawals` | `INTERNAL_SERVICE_TOKEN` via `x-internal-token` |
 
 ## Marking Flow
 

@@ -31,6 +31,18 @@ export class ReportsController {
     return { data: this.reports.cashFlow(this.reports.parseFilters(query)) };
   }
 
+  @Get('equity-changes')
+  async equityChanges(@Req() req: Request, @Query() query: any) {
+    assertPermission(req, 'report:read');
+    return { data: this.reports.equityChanges(this.reports.parseFilters(query)) };
+  }
+
+  @Get('budget-vs-actual')
+  async budgetVsActual(@Req() req: Request, @Query() query: any) {
+    assertPermission(req, 'report:read');
+    return { data: this.reports.budgetVsActual(this.reports.parseFilters(query)) };
+  }
+
   @Get('supplier-aging')
   async supplierAging(@Req() req: Request, @Query() query: any) {
     assertPermission(req, 'report:read');

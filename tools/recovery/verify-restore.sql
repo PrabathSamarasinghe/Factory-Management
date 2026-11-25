@@ -41,7 +41,7 @@ WHERE t.table_type = 'BASE TABLE'
       ('collection', 'pickups'),
       ('collection', 'factory_weighings'),
       ('notification', 'sms_messages'),
-      ('realtime', 'webhook_subscriptions'),
+      ('realtime_service', 'webhook_subscriptions'),
       ('accounts', 'accounts'),
       ('accounts', 'journal_entries'),
       ('accounts', 'journal_lines'),

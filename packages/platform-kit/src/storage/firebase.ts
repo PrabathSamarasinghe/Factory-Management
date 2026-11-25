@@ -1,6 +1,8 @@
 import {
+  byteLength,
   signedUrlExpiryDate,
   validateObjectKey,
+  validateUploadInput,
   type FileStorage,
   type PutObjectInput,
   type SignedUrlOptions,
@@ -57,6 +59,12 @@ export class FirebaseFileStorage implements FileStorage {
           ? input.body
           : Buffer.from(input.body);
 
+    validateUploadInput({
+      key,
+      contentType: input.contentType,
+      sizeBytes: input.sizeBytes ?? byteLength(data),
+    });
+
     await this.bucket.file(key).save(data, {
       resumable: false,
       contentType: input.contentType,
@@ -86,10 +94,18 @@ export class FirebaseFileStorage implements FileStorage {
   }
 
   async getUploadUrl(key: string, options: SignedUrlOptions = {}): Promise<string> {
-    const [url] = await this.bucket.file(validateObjectKey(key)).getSignedUrl({
+    const validatedKey = validateObjectKey(key);
+    const contentType = options.contentType
+      ? validateUploadInput({
+          key: validatedKey,
+          contentType: options.contentType,
+          sizeBytes: options.sizeBytes,
+        })
+      : undefined;
+    const [url] = await this.bucket.file(validatedKey).getSignedUrl({
       action: 'write',
       expires: signedUrlExpiryDate(options),
-      contentType: options.contentType,
+      contentType,
       version: this.options.signedUrlVersion ?? 'v4',
     });
     return url;

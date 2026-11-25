@@ -11,7 +11,7 @@ totals, supplier statements and live supplier-SMS delivery status.
   running (default gateway `http://localhost:3000`)
 - A user with the trip and collection permissions needed for the screens you
   plan to use: `trip:read`, `trip:create`, `trip:update`, `trip:end`,
-  `trip:cancel`, `collection:read`, `collection:weigh`, `collection:finalize`,
+  `trip:override-end`, `trip:cancel`, `collection:read`, `collection:weigh`, `collection:finalize`,
   `collection:review`, `collection:resolve`, `sms:read`, `sms:resend` and
   `sms:review`
 
@@ -72,6 +72,19 @@ The app uses the shared desktop-core settings. It defaults `x-client-app` to
 | `GALATURA_KEYRING_SERVICE`  | `galatura-factory-management`     | Keyring service name                         |
 | `GALATURA_KEYRING_ACCOUNT`  | `trips-console`                   | Keyring account name                         |
 | `GALATURA_DISABLE_KEYRING`  | unset                             | Set to `1` to keep tokens in memory only     |
+| `GALATURA_SCALE_MODE`       | `simulator`                       | `serial` for a real scale, `simulator` for mock readings |
+| `GALATURA_SCALE_PORT`       | `COM1`                            | Serial port when mode is `serial`            |
+| `GALATURA_SCALE_BAUD`       | `9600`                            | Serial baud rate                             |
+| `GALATURA_SCALE_PROTOCOL`   | `continuous`                      | `continuous` stream or `poll` request/response |
+| `GALATURA_SCALE_TIMEOUT`    | `5`                               | Read timeout in seconds                      |
+| `GALATURA_SCALE_POLL_COMMAND` | `P\r`                            | Command sent in `poll` mode                  |
+| `GALATURA_SCALE_REQUIRE_STABLE` | `true`                         | Ignore unstable weight frames                |
+| `GALATURA_SCALE_SIMULATED_WEIGHT` | `123.456`                    | Weight returned by simulator mode            |
+| `GALATURA_SCALE_ID`         | `SIM-1`                           | Scale id recorded with the weighing          |
+
+Install the optional `scale` extra for real serial scales:
+`pip install -e "apps/desktop-trips[scale]"`. Simulator mode works without
+`pyserial` or hardware. Manual gross-weight entry is always available.
 
 On startup the app tries to restore a stored session. If that fails it stays on
 the login screen. **Sign out** clears tokens and returns to the login screen.
@@ -80,10 +93,12 @@ The main window status bar shows the gateway, client app and signed-in user.
 ## Screens
 
 - **Trips** - list trips, start a trip with a client id and odometer, mark
-  factory arrival, cancel a trip, and end it after collection finalisation.
+  factory arrival, cancel a trip, end it after collection finalisation, or use
+  **Override end** with a mandatory reason when `trip:override-end` is granted.
 - **Weighing** - select a trip and supplier/pickup, enter factory gross, tare,
-  deductions and bags, review the calculated net and any tolerance warning,
-  record the weighing, check readiness, and finalise only after confirmation.
+  deductions and bags or use **Read from scale**, review the calculated net in
+  the large-font view, record the weighing, check readiness, finalise only after
+  confirmation, and preview/print a receipt or label through an external hook.
 - **Discrepancies** - filter discrepancies by status and resolve them with a
   status and note.
 - **Supplier SMS** - poll SMS delivery status every 15 seconds, filter by
@@ -98,6 +113,8 @@ UI never sends floating-point weights.
 
 ```powershell
 python -m compileall -q apps/desktop-core/src apps/desktop-trips/src
+$env:PYTHONPATH = "apps/desktop-trips/src"
+python -m unittest discover -s apps/desktop-trips/tests
 ```
 
 For a GUI smoke test with PySide6 installed:

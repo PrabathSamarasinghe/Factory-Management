@@ -10,7 +10,10 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { FleetAuditService } from '../audit/audit.service';
 import { OutboxService } from '../outbox/outbox.service';
-import { CollectionReadinessClient } from '../collection/collection-readiness.client';
+import {
+  CollectionReadinessClient,
+  type CollectionReadiness,
+} from '../collection/collection-readiness.client';
 import type { RequestContext } from '../common/request';
 import {
   dateOnly,
@@ -69,6 +72,10 @@ export interface EndTripInput {
   endLat?: unknown;
   endLng?: unknown;
   remarks?: unknown;
+}
+
+export interface AdminOverrideEndTripInput extends EndTripInput {
+  reason?: unknown;
 }
 
 @Injectable()
@@ -305,16 +312,9 @@ export class TripsService {
   }
 
   async end(id: string, input: EndTripInput, context: RequestContext) {
-    const trip = await this.prisma.trip.findUnique({ where: { id } });
-    if (!trip) throw new NotFoundError('Trip not found.');
-    if (trip.status === 'COMPLETED') return trip;
-    if (trip.status !== 'AT_FACTORY' && trip.status !== 'WEIGHING') {
-      throw new ConflictError('The trip must be at the factory before it can be ended.');
-    }
-    const endOdometerKm = decimalString(input.endOdometerKm, 'endOdometerKm');
-    if (Number(endOdometerKm) < Number(trip.startOdometerKm)) {
-      throw new ValidationError('endOdometerKm must be greater than or equal to startOdometerKm.');
-    }
+    const { trip, completed } = await this.loadEndableTrip(id);
+    if (completed) return trip;
+    const endOdometerKm = this.validateEndOdometer(trip, input);
 
     const readiness = await this.collections.check(id);
     if (!readiness.ready || !readiness.totalsFinalized) {
@@ -324,6 +324,55 @@ export class TripsService {
       );
     }
 
+    return this.completeEnd(trip, endOdometerKm, input, context, null);
+  }
+
+  async overrideEnd(id: string, input: AdminOverrideEndTripInput, context: RequestContext) {
+    const reason = requiredString(input.reason, 'reason');
+    const { trip, completed } = await this.loadEndableTrip(id);
+    if (completed) return trip;
+    const endOdometerKm = this.validateEndOdometer(trip, input);
+    if (!context.actorId) {
+      throw new ValidationError('x-user-id is required to override a trip end.');
+    }
+    const readiness = await this.readinessForOverride(id);
+    return this.completeEnd(trip, endOdometerKm, input, context, { reason, readiness });
+  }
+
+  private async loadEndableTrip(id: string) {
+    const trip = await this.prisma.trip.findUnique({ where: { id } });
+    if (!trip) throw new NotFoundError('Trip not found.');
+    if (trip.status === 'COMPLETED') return { trip, completed: true as const };
+    if (trip.status !== 'AT_FACTORY' && trip.status !== 'WEIGHING') {
+      throw new ConflictError('The trip must be at the factory before it can be ended.');
+    }
+    return { trip, completed: false as const };
+  }
+
+  private validateEndOdometer(trip: any, input: EndTripInput): string {
+    const endOdometerKm = decimalString(input.endOdometerKm, 'endOdometerKm');
+    if (Number(endOdometerKm) < Number(trip.startOdometerKm)) {
+      throw new ValidationError('endOdometerKm must be greater than or equal to startOdometerKm.');
+    }
+    return endOdometerKm;
+  }
+
+  private async readinessForOverride(id: string): Promise<CollectionReadiness> {
+    try {
+      return await this.collections.check(id);
+    } catch {
+      return { ready: false, totalsFinalized: false, pendingSupplierIds: [] };
+    }
+  }
+
+  private async completeEnd(
+    trip: any,
+    endOdometerKm: string,
+    input: EndTripInput,
+    context: RequestContext,
+    override: { reason: string; readiness: CollectionReadiness } | null,
+  ) {
+    const id = trip.id as string;
     const now = new Date();
     const ended = await this.prisma.$transaction(async (tx: any) => {
       const updated = await tx.trip.update({
@@ -338,6 +387,14 @@ export class TripsService {
           endedBy: context.actorId,
           remarks: optionalString(input.remarks) ?? trip.remarks,
           version: { increment: 1 },
+          ...(override
+            ? {
+                overrideKind: 'END_AFTER_TOTALS',
+                overrideReason: override.reason,
+                overrideBy: context.actorId,
+                overrideAt: now,
+              }
+            : {}),
         },
       });
       const lorry = await tx.lorry.findUnique({ where: { id: trip.lorryId } });
@@ -346,6 +403,31 @@ export class TripsService {
           where: { id: trip.lorryId },
           data: { currentOdometerKm: endOdometerKm, version: { increment: 1 } },
         });
+      }
+      const payload: Record<string, unknown> = {
+        tripId: id,
+        routeId: trip.routeId,
+        lorryId: trip.lorryId,
+        ownerPersonId: trip.ownerPersonId,
+        startedAt: trip.startedAt ? trip.startedAt.toISOString() : null,
+        endedAt: now.toISOString(),
+        startOdometerKm: decimalText(trip.startOdometerKm),
+        endOdometerKm: decimalText(endOdometerKm),
+        distanceKm: decimalText(Number(endOdometerKm) - Number(trip.startOdometerKm)),
+        endedBy: context.actorId ?? null,
+      };
+      if (override) {
+        payload.override = {
+          kind: 'END_AFTER_TOTALS',
+          reason: override.reason,
+          by: context.actorId,
+          at: now.toISOString(),
+          readinessBypassed: {
+            ready: override.readiness.ready,
+            totalsFinalized: override.readiness.totalsFinalized,
+            pendingSupplierIds: override.readiness.pendingSupplierIds,
+          },
+        };
       }
       const event = createEvent({
         type: 'trip.ended',
@@ -356,27 +438,26 @@ export class TripsService {
           type: context.actorId ? 'USER' : 'SYSTEM',
           id: context.actorId ?? null,
         },
-        payload: {
-          tripId: id,
-          routeId: trip.routeId,
-          lorryId: trip.lorryId,
-          ownerPersonId: trip.ownerPersonId,
-          startedAt: trip.startedAt ? trip.startedAt.toISOString() : null,
-          endedAt: now.toISOString(),
-          startOdometerKm: decimalText(trip.startOdometerKm),
-          endOdometerKm: decimalText(endOdometerKm),
-          distanceKm: decimalText(Number(endOdometerKm) - Number(trip.startOdometerKm)),
-          endedBy: context.actorId ?? null,
-        },
+        payload,
       });
       await this.outbox.append(event, tx);
       await this.audit.record(
         {
           actorId: context.actorId,
-          action: 'trip.ended',
+          action: override ? 'trip.ended.override' : 'trip.ended',
           entityType: 'Trip',
           entityId: id,
-          metadata: { endOdometerKm: decimalText(endOdometerKm) },
+          metadata: {
+            endOdometerKm: decimalText(endOdometerKm),
+            ...(override
+              ? {
+                  reason: override.reason,
+                  overriddenBy: context.actorId,
+                  overrideAt: now.toISOString(),
+                  readiness: override.readiness,
+                }
+              : {}),
+          },
           ip: context.ip,
         },
         tx,

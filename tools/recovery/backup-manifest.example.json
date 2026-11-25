@@ -12,7 +12,7 @@
         "fleet",
         "collection",
         "notification",
-        "realtime",
+        "realtime_service",
         "accounts",
         "inventory",
         "reporting"
@@ -38,7 +38,7 @@
         "fleet",
         "collection",
         "notification",
-        "realtime",
+        "realtime_service",
         "accounts",
         "inventory",
         "reporting"
@@ -64,7 +64,7 @@
         "fleet",
         "collection",
         "notification",
-        "realtime",
+        "realtime_service",
         "accounts",
         "inventory",
         "reporting"

@@ -1,7 +1,6 @@
 -- CreateSchema
 CREATE SCHEMA IF NOT EXISTS "collection";
-
-SET search_path TO "collection";
+SET search_path TO "collection", public;
 
 -- CreateEnum
 CREATE TYPE "ScanMethod" AS ENUM ('BARCODE', 'REG_NO');
@@ -167,3 +166,5 @@ CREATE UNIQUE INDEX "weight_discrepancies_pickup_id_weighing_id_key" ON "collect
 CREATE INDEX "weight_discrepancies_status_idx" ON "collection"."weight_discrepancies"("status");
 CREATE INDEX "sync_batches_device_id_idx" ON "collection"."sync_batches"("device_id");
 CREATE INDEX "collection_audit_logs_entity_type_entity_id_idx" ON "collection"."collection_audit_logs"("entity_type", "entity_id");
+
+RESET search_path;

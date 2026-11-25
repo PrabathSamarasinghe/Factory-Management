@@ -311,3 +311,14 @@ model OutboxEvent {
   @@map("outbox_events")
   @@schema("attendance")
 }
+
+model ConsentWithdrawalInbox {
+  id          String   @id @db.Text
+  personId    String   @map("person_id") @db.Uuid
+  eventType   String   @map("event_type") @db.Text
+  processedAt DateTime @default(now()) @map("processed_at") @db.Timestamptz(6)
+
+  @@index([personId, processedAt])
+  @@map("consent_withdrawal_inbox")
+  @@schema("attendance")
+}

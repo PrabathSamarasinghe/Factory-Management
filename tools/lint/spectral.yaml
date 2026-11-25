@@ -1,0 +1,92 @@
+extends: [[spectral:oas, recommended]]
+formats: [oas3]
+rules:
+  operation-operationId:
+    severity: error
+  operation-operationId-unique:
+    severity: error
+  operation-success-response:
+    severity: error
+  path-params:
+    severity: error
+  path-keys-no-trailing-slash:
+    severity: error
+  oas3-unused-component:
+    severity: warn
+  galatura-operation-summary:
+    description: Every operation must have a summary.
+    message: Operation must have a non-empty summary.
+    severity: error
+    given: $.paths[*][get,post,put,patch,delete]
+    then:
+      field: summary
+      function: truthy
+  galatura-operation-tags:
+    description: Every operation must declare tags.
+    message: Operation must have at least one tag.
+    severity: error
+    given: $.paths[*][get,post,put,patch,delete]
+    then:
+      field: tags
+      function: truthy
+  galatura-operation-security:
+    description: 'Every operation must declare security, including security: [] for public endpoints.'
+    message: Operation must declare security.
+    severity: error
+    given: $.paths[*][get,post,put,patch,delete]
+    then:
+      field: security
+      function: truthy
+  galatura-path-kebab-case:
+    description: Path segments must be lowercase kebab-case; RFC 8212 well-known paths are allowed.
+    message: '{{property}} must use kebab-case path segments.'
+    severity: error
+    given: $.paths[*]~
+    then:
+      function: pattern
+      functionOptions:
+        match: '^/$|^/(?:[a-z0-9]+(?:-[a-z0-9]+)*|\{[^}]+\}|\.well-known|[a-z][a-z0-9]*\.json)+$'
+  galatura-error-responses-required:
+    description: Operations must document 400, 401, 403, 422, 429 and 500 responses.
+    message: Operation is missing required error response {{property}}.
+    severity: error
+    given: $.paths[*][get,post,put,patch,delete].responses
+    then:
+      - field: '400'
+        function: truthy
+      - field: '401'
+        function: truthy
+      - field: '403'
+        function: truthy
+      - field: '422'
+        function: truthy
+      - field: '429'
+        function: truthy
+      - field: '500'
+        function: truthy
+  galatura-error-envelope-ref:
+    description: Error responses must reference the shared ErrorEnvelope schema.
+    message: Error response schema must reference #/components/schemas/ErrorEnvelope.
+    severity: error
+    given: "$.paths[*][get,post,put,patch,delete].responses['400','401','403','422','429','500'].content['application/json'].schema"
+    then:
+      field: $ref
+      function: pattern
+      functionOptions:
+        match: '^#/components/schemas/ErrorEnvelope$'
+  galatura-request-body-example:
+    description: Request bodies should include an example.
+    message: Request body should include an example.
+    severity: warn
+    given: "$.paths[*][get,post,put,patch,delete].requestBody.content['application/json']"
+    then:
+      field: example
+      function: truthy
+  galatura-response-body-example:
+    description: Response bodies should include an example.
+    message: Response body should include an example.
+    severity: warn
+    given: "$.paths[*][get,post,put,patch,delete].responses.*.content['application/json']"
+    then:
+      field: example
+      function: truthy

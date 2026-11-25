@@ -51,6 +51,7 @@ export function serializeJournalEntry(row: any, lines: any[] = []) {
     description: row.description,
     sourceType: row.sourceType,
     sourceId: row.sourceId ?? null,
+    sourceDrill: row.sourceId ? `/journal-entries/${row.id}/source` : null,
     status: row.status,
     reversalOfId: row.reversalOfId ?? null,
     reversalReason: row.reversalReason ?? null,

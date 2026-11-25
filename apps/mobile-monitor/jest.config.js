@@ -5,6 +5,7 @@
   testMatch: ['**/__tests__/**/*.test.(ts|tsx|js)'],
   moduleNameMapper: {
     '^@galatura/mobile-core$': '<rootDir>/../mobile-core/src/index.ts',
+    '^@galatura/api-client-ts$': '<rootDir>/../../packages/api-client-ts/src/index.ts',
     '^react-native$': '<rootDir>/__tests__/react-native-mock.js',
     '^react-native-keychain$': '<rootDir>/__tests__/keychain-mock.js',
     '^react-native-safe-area-context$': '<rootDir>/__tests__/safe-area-mock.js',

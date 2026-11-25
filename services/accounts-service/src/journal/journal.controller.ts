@@ -35,8 +35,22 @@ export class JournalController {
     return { data: await this.journal.getEntry(id) };
   }
 
+  @Get('journal-entries/:id/source')
+  async source(@Req() req: Request, @Param('id') id: string) {
+    assertPermission(req, 'ledger:read');
+    return { data: await this.journal.sourceDocument(id) };
+  }
+
   @Post('journal-entries/opening')
   async opening(@Req() req: Request, @Body() body: any) {
+    assertPermission(req, 'ledger:opening');
+    return {
+      data: await this.journal.postOpening(bodyWithIdempotency(req, body), contextFrom(req)),
+    };
+  }
+
+  @Post('opening-balances')
+  async openingBalances(@Req() req: Request, @Body() body: any) {
     assertPermission(req, 'ledger:opening');
     return {
       data: await this.journal.postOpening(bodyWithIdempotency(req, body), contextFrom(req)),
@@ -97,5 +111,21 @@ export class JournalController {
   ) {
     assertPermission(req, 'ledger:read');
     return { data: await this.journal.tAccount(accountId, optionalDateOnly(asOf, 'asOf')) };
+  }
+
+  @Get('ledger/:accountId/t-account')
+  async ledgerTAccount(
+    @Req() req: Request,
+    @Param('accountId') accountId: string,
+    @Query('asOf') asOf?: string,
+  ) {
+    assertPermission(req, 'ledger:read');
+    return { data: await this.journal.tAccount(accountId, optionalDateOnly(asOf, 'asOf')) };
+  }
+
+  @Post('year-end/close')
+  async closeYear(@Req() req: Request, @Body() body: any) {
+    assertPermission(req, 'period:close');
+    return { data: await this.journal.closeFiscalYear(body, contextFrom(req)) };
   }
 }

@@ -23,6 +23,18 @@ import type { RequestContext } from '../common/request';
 const ACCOUNT_TYPES = ['ASSET', 'LIABILITY', 'EQUITY', 'INCOME', 'EXPENSE'] as const;
 const NORMAL_BALANCES = ['DEBIT', 'CREDIT'] as const;
 const STATEMENTS = ['BALANCE_SHEET', 'PROFIT_LOSS', 'CASH_FLOW', 'EQUITY'] as const;
+const APPROVED_RULE_STATUSES = ['APPROVED', 'ACTIVE'];
+
+export interface PostingRuleQuery {
+  eventType: unknown;
+  effectiveDate: Date | string;
+  version?: number;
+  condition?: unknown;
+}
+
+export interface PostingAccountQuery extends PostingRuleQuery {
+  fallback: { debitCode: string; creditCode: string };
+}
 
 @Injectable()
 export class AccountsService {
@@ -249,6 +261,10 @@ export class AccountsService {
     const period = await this.prisma.fiscalPeriod.findUnique({ where: { id: periodId } });
     if (!period) throw new NotFoundError('Fiscal period not found.');
     if (period.status !== 'OPEN') throw new ConflictError('Fiscal period is locked.');
+    if (period.fiscalYearId) {
+      const year = await this.prisma.fiscalYear.findUnique({ where: { id: period.fiscalYearId } });
+      if (year?.status === 'CLOSED') throw new ConflictError('Fiscal year is closed.');
+    }
     return period;
   }
 
@@ -288,6 +304,7 @@ export class AccountsService {
     const effectiveFrom = dateOnly(input?.effectiveFrom, 'effectiveFrom');
     const debitAccountId = uuid(input?.debitAccountId, 'debitAccountId');
     const creditAccountId = uuid(input?.creditAccountId, 'creditAccountId');
+    const conditionJson = this.normalizeCondition(input?.conditionJson);
     if (debitAccountId === creditAccountId) {
       throw new BusinessRuleError('Debit and credit accounts must differ.');
     }
@@ -304,8 +321,9 @@ export class AccountsService {
         effectiveFrom,
         debitAccountId,
         creditAccountId,
-        conditionJson: input?.conditionJson ?? null,
-        approver: context.actorId,
+        conditionJson: conditionJson as any,
+        status: 'DRAFT',
+        approver: context.actorId ?? null,
       },
     });
     await this.audit.record({
@@ -313,8 +331,53 @@ export class AccountsService {
       action: 'postingRule.created',
       entityType: 'PostingRule',
       entityId: row.id,
+      metadata: { eventType, version, maker: context.actorId ?? null },
     });
     return this.serializePostingRule(row);
+  }
+
+  async approvePostingRule(id: string, context: RequestContext) {
+    const row = await this.prisma.postingRule.findUnique({ where: { id } });
+    if (!row) throw new NotFoundError('Posting rule not found.');
+    if (!['DRAFT', 'DISABLED'].includes(row.status)) {
+      throw new ConflictError('Only draft or disabled posting rules can be approved.');
+    }
+    if (!context.actorId) throw new BusinessRuleError('An approver is required.');
+    if (row.approver && row.approver === context.actorId) {
+      throw new BusinessRuleError('The maker cannot approve their own posting rule.');
+    }
+
+    const updated = await this.prisma.postingRule.update({
+      where: { id },
+      data: { status: 'APPROVED', approver: context.actorId },
+    });
+    await this.audit.record({
+      actorId: context.actorId,
+      action: 'postingRule.approved',
+      entityType: 'PostingRule',
+      entityId: id,
+      metadata: { eventType: row.eventType, version: row.version, maker: row.approver ?? null },
+    });
+    return this.serializePostingRule(updated);
+  }
+
+  async disablePostingRule(id: string, context: RequestContext) {
+    const row = await this.prisma.postingRule.findUnique({ where: { id } });
+    if (!row) throw new NotFoundError('Posting rule not found.');
+    if (!APPROVED_RULE_STATUSES.includes(row.status)) {
+      throw new ConflictError('Only approved posting rules can be disabled.');
+    }
+    const updated = await this.prisma.postingRule.update({
+      where: { id },
+      data: { status: 'DISABLED' },
+    });
+    await this.audit.record({
+      actorId: context.actorId,
+      action: 'postingRule.disabled',
+      entityType: 'PostingRule',
+      entityId: id,
+    });
+    return this.serializePostingRule(updated);
   }
 
   async listPostingRules(eventType?: string) {
@@ -324,6 +387,65 @@ export class AccountsService {
         : undefined,
     );
     return rows.map((row) => this.serializePostingRule(row));
+  }
+
+  async resolvePostingRule(input: PostingRuleQuery) {
+    const eventType = requiredString(input?.eventType, 'eventType');
+    const effectiveDate = input?.effectiveDate instanceof Date
+      ? input.effectiveDate
+      : dateOnly(input?.effectiveDate, 'effectiveDate');
+    const version = input?.version === undefined ? undefined : positiveInt(input.version, 'version');
+    const condition = this.normalizeCondition(input?.condition);
+    const effectiveFrom = dateKey(effectiveDate);
+
+    const rows = await this.prisma.postingRule.findMany({ where: { eventType } });
+    const candidates = rows
+      .filter((row: any) => APPROVED_RULE_STATUSES.includes(row.status))
+      .filter((row: any) => dateKey(new Date(row.effectiveFrom)) <= effectiveFrom)
+      .filter((row: any) => version === undefined || row.version <= version)
+      .filter((row: any) => this.conditionMatches(row.conditionJson, condition))
+      .sort(
+        (left: any, right: any) =>
+          right.version - left.version ||
+          dateKey(new Date(right.effectiveFrom)).localeCompare(dateKey(new Date(left.effectiveFrom))),
+      );
+
+    return candidates[0] ? this.serializePostingRule(candidates[0]) : null;
+  }
+
+  async resolvePostingAccounts(input: PostingAccountQuery) {
+    const rule = await this.resolvePostingRule(input);
+    if (!rule) {
+      const debit = await this.accountByCode(input.fallback.debitCode);
+      const credit = await this.accountByCode(input.fallback.creditCode);
+      return { debitAccountId: debit.id, creditAccountId: credit.id, rule: null };
+    }
+    return {
+      debitAccountId: rule.debitAccountId,
+      creditAccountId: rule.creditAccountId,
+      rule,
+    };
+  }
+
+  async deleteAccount(id: string, context: RequestContext) {
+    const row = await this.prisma.account.findUnique({ where: { id } });
+    if (!row) throw new NotFoundError('Account not found.');
+    const postings = await this.prisma.journalLine.findMany({ where: { accountId: id } });
+    if (postings.length > 0 || row.openingBalanceEntryId) {
+      throw new ConflictError('An account with postings cannot be deleted.');
+    }
+    const children = await this.prisma.account.findMany({ where: { parentId: id } });
+    if (children.length > 0) throw new BusinessRuleError('Move or delete child accounts first.');
+
+    await this.prisma.account.delete({ where: { id } });
+    await this.audit.record({
+      actorId: context.actorId,
+      action: 'account.deleted',
+      entityType: 'Account',
+      entityId: id,
+      metadata: { code: row.code },
+    });
+    return { id, code: row.code, deleted: true };
   }
 
   async upsertReportSection(code: string, input: any, context: RequestContext) {
@@ -445,6 +567,37 @@ export class AccountsService {
     };
   }
 
+  private normalizeCondition(value: unknown): Record<string, unknown> | null {
+    if (value === undefined || value === null) return null;
+    let parsed = value;
+    if (typeof parsed === 'string') {
+      try {
+        parsed = JSON.parse(parsed);
+      } catch {
+        throw new BusinessRuleError('conditionJson must be a JSON object.');
+      }
+    }
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      throw new BusinessRuleError('conditionJson must be a JSON object.');
+    }
+    return { ...(parsed as Record<string, unknown>) };
+  }
+
+  private conditionMatches(
+    ruleCondition: unknown,
+    provided: Record<string, unknown> | null,
+  ): boolean {
+    const expectedCondition = this.normalizeCondition(ruleCondition);
+    if (!expectedCondition || Object.keys(expectedCondition).length === 0) return true;
+    return Object.entries(expectedCondition).every(([key, expected]) => {
+      const actual = provided?.[key];
+      if (expected && typeof expected === 'object' && Array.isArray((expected as any).in)) {
+        return (expected as any).in.includes(actual);
+      }
+      return actual === expected;
+    });
+  }
+
   private serializeFiscalYear(row: any) {
     return {
       id: row.id,
@@ -478,7 +631,8 @@ export class AccountsService {
       creditAccountId: row.creditAccountId,
       conditionJson: row.conditionJson ?? null,
       status: row.status,
-      approver: row.approver ?? null,
+      maker: APPROVED_RULE_STATUSES.includes(row.status) ? null : (row.approver ?? null),
+      approver: APPROVED_RULE_STATUSES.includes(row.status) ? (row.approver ?? null) : null,
     };
   }
 

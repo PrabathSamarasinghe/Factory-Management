@@ -3,6 +3,7 @@ import type { Request } from 'express';
 import { assertPermission, contextFrom } from '../common/request';
 import {
   TripsService,
+  type AdminOverrideEndTripInput,
   type EndTripInput,
   type StartTripInput,
   type TripEventInput,
@@ -59,6 +60,16 @@ export class TripsController {
   end(@Param('id') id: string, @Body() body: EndTripInput, @Req() req: Request) {
     assertPermission(req, 'trip:end');
     return this.trips.end(id, body, contextFrom(req));
+  }
+
+  @Post('trips/:id/override-end')
+  overrideEnd(
+    @Param('id') id: string,
+    @Body() body: AdminOverrideEndTripInput,
+    @Req() req: Request,
+  ) {
+    assertPermission(req, 'trip:override-end');
+    return this.trips.overrideEnd(id, body, contextFrom(req));
   }
 
   @Post('trips/:id/cancel')

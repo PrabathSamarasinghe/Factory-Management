@@ -111,6 +111,7 @@ model Person {
   emergencyContacts EmergencyContact[]
   documents         PersonDocument[]
   consents          Consent[]
+  consentEvidence   ConsentEvidence[]
   changeLogs        PersonChangeLog[]
 
   @@index([personType])
@@ -313,5 +314,32 @@ model PersonChangeLog {
 
   @@index([personId, changedAt])
   @@map("person_change_log")
+  @@schema("people")
+}
+
+model ConsentEvidence {
+  id          String      @id @default(uuid(7)) @db.Uuid
+  personId    String      @map("person_id") @db.Uuid
+  consentType ConsentType @map("consent_type")
+  objectKey   String      @map("object_key") @db.Text
+  createdAt   DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  person Person @relation(fields: [personId], references: [id], onDelete: Cascade)
+
+  @@index([personId, consentType, createdAt])
+  @@map("consent_evidence")
+  @@schema("people")
+}
+
+model OutboxEvent {
+  id          String    @id @db.Uuid
+  envelope    Json      @db.JsonB
+  publishedAt DateTime? @map("published_at") @db.Timestamptz(6)
+  attempts    Int       @default(0)
+  lastError   String?   @map("last_error") @db.Text
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([publishedAt, createdAt])
+  @@map("outbox_events")
   @@schema("people")
 }

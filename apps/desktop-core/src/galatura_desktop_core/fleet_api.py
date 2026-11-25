@@ -164,6 +164,16 @@ class FleetApi:
             json_body=dict(payload),
         )
 
+    def override_end_trip(self, trip_id: str, payload: Mapping[str, Any]) -> dict[str, Any]:
+        body = dict(payload)
+        if not str(body.get("reason") or "").strip():
+            raise ValueError("reason is required to override a trip end.")
+        return self.client.post(
+            self.base,
+            f"/trips/{trip_id}/override-end",
+            json_body=body,
+        )
+
     def cancel_trip(self, trip_id: str, remarks: str | None = None) -> dict[str, Any]:
         return self.client.post(
             self.base,

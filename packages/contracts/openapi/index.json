@@ -1,0 +1,65 @@
+{
+  "generator": "tools/openapi/generate.mjs",
+  "services": [
+    {
+      "name": "accounts",
+      "spec": "accounts.json",
+      "basePath": "/api/v1/accounts",
+      "operationCount": 75
+    },
+    {
+      "name": "attendance",
+      "spec": "attendance.json",
+      "basePath": "/api/v1/attendance",
+      "operationCount": 31
+    },
+    {
+      "name": "collection",
+      "spec": "collection.json",
+      "basePath": "/api/v1/collection",
+      "operationCount": 16
+    },
+    {
+      "name": "fleet",
+      "spec": "fleet.json",
+      "basePath": "/api/v1/fleet",
+      "operationCount": 25
+    },
+    {
+      "name": "identity",
+      "spec": "identity.json",
+      "basePath": "/api/v1/identity",
+      "operationCount": 34
+    },
+    {
+      "name": "inventory",
+      "spec": "inventory.json",
+      "basePath": "/api/v1/inventory",
+      "operationCount": 39
+    },
+    {
+      "name": "notification",
+      "spec": "notification.json",
+      "basePath": "/api/v1/notification",
+      "operationCount": 10
+    },
+    {
+      "name": "people",
+      "spec": "people.json",
+      "basePath": "/api/v1/people",
+      "operationCount": 22
+    },
+    {
+      "name": "realtime",
+      "spec": "realtime.json",
+      "basePath": "/api/v1/realtime",
+      "operationCount": 13
+    },
+    {
+      "name": "reporting",
+      "spec": "reporting.json",
+      "basePath": "/api/v1/reporting",
+      "operationCount": 9
+    }
+  ]
+}

@@ -1,0 +1,70 @@
+name: Publish Platform Kit
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: Run build, tests and a publish dry run only
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: publish-platform-kit-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Build and publish @galatura/platform-kit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 12.21.0
+          run_install: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+          registry-url: https://npm.pkg.github.com
+          scope: "@galatura"
+      - run: pnpm install --frozen-lockfile
+      - name: Check tag matches package version
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          version="$(node -p "require('./packages/platform-kit/package.json').version")"
+          if [ "$tag" != "$version" ]; then
+            echo "Tag $tag does not match package version $version" >&2
+            exit 1
+          fi
+      - run: pnpm --filter @galatura/platform-kit build
+      - run: pnpm --filter @galatura/platform-kit test
+      - name: Dry run package
+        if: github.event_name == 'workflow_dispatch' && inputs.dry_run
+        run: pnpm --filter @galatura/platform-kit publish --dry-run --no-git-checks
+      - name: Verify publication credentials
+        if: >-
+          (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')) ||
+          (github.event_name == 'workflow_dispatch' && !inputs.dry_run)
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }}
+        run: |
+          if [ -z "${NODE_AUTH_TOKEN}" ]; then
+            echo "NODE_AUTH_TOKEN secret is required to publish." >&2
+            exit 1
+          fi
+      - name: Publish to GitHub Packages
+        if: >-
+          (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')) ||
+          (github.event_name == 'workflow_dispatch' && !inputs.dry_run)
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }}
+        run: pnpm --filter @galatura/platform-kit publish --no-git-checks --access restricted

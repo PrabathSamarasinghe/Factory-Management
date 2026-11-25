@@ -1,4 +1,9 @@
 import { DependencyUnavailableError, ValidationError } from '@galatura/platform-kit';
+import {
+  FACE_ENGINE_API_KEY_HEADER,
+  readFaceEngineConfig,
+  type FaceEngineConfig,
+} from './face-config';
 import { cosineSimilarity, type FaceAnalysis, type FaceEngine, type FaceFrame } from './face-engine';
 
 interface HttpFaceResponse extends FaceAnalysis {
@@ -6,32 +11,37 @@ interface HttpFaceResponse extends FaceAnalysis {
   livenessThreshold?: number;
 }
 
-/**
- * Adapter for a private inference worker. The worker owns the model, liveness
- * classifier and threshold versioning; the API service only stores encrypted
- * embeddings and applies the returned score.
- */
 export class HttpFaceEngine implements FaceEngine {
   readonly modelName: string;
   readonly modelVersion: string;
   readonly embeddingDim: number;
   readonly threshold: number;
   readonly livenessThreshold: number;
+  private readonly apiKey?: string;
 
-  constructor(private readonly baseUrl: string) {
-    this.modelName = process.env.ATTENDANCE_FACE_MODEL_NAME || 'arcface';
-    this.modelVersion = process.env.ATTENDANCE_FACE_MODEL_VERSION || 'unversioned';
-    this.embeddingDim = Number(process.env.ATTENDANCE_FACE_EMBEDDING_DIM || 512);
-    this.threshold = Number(process.env.ATTENDANCE_FACE_THRESHOLD || 0.82);
-    this.livenessThreshold = Number(process.env.ATTENDANCE_LIVENESS_THRESHOLD || 0.8);
+  constructor(
+    private readonly baseUrl: string,
+    config: FaceEngineConfig = readFaceEngineConfig(),
+  ) {
+    this.modelName = config.modelName;
+    this.modelVersion = config.modelVersion;
+    this.embeddingDim = config.embeddingDim;
+    this.threshold = config.threshold;
+    this.livenessThreshold = config.livenessThreshold;
+    this.apiKey = config.apiKey;
   }
 
   async analyze(frame: FaceFrame): Promise<FaceAnalysis> {
+    const headers: Record<string, string> = { 'content-type': 'application/json' };
+    if (this.apiKey) {
+      headers[FACE_ENGINE_API_KEY_HEADER] = this.apiKey;
+    }
+
     let response: Response;
     try {
       response = await fetch(`${this.baseUrl.replace(/\/$/, '')}/analyze`, {
         method: 'POST',
-        headers: { 'content-type': 'application/json' },
+        headers,
         body: JSON.stringify(frame),
         signal: AbortSignal.timeout(15_000),
       });

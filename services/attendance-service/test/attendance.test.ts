@@ -66,6 +66,7 @@ function buildPrisma() {
     leaveRequest: [],
     holiday: [],
     outboxEvent: [],
+    consentWithdrawalInbox: [],
     attendanceAuditLog: [],
     registeredDevice: [],
   };

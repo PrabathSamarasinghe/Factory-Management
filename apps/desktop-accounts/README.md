@@ -14,8 +14,8 @@ reports, period close and bank reconciliation.
   `ledger:post`, `ledger:reverse`, `ledger:opening`, `report:read`,
   `report:export`, `payable:read`, `wages:read`, `bill:generate`,
   `bill:approve`, `payroll:run`, `payroll:approve`, `payment:create`,
-  `payment:approve`, `payment:export`, `payment:mark-paid`, `period:lock`,
-  `recon:read`, `recon:write`, `rate:read`, `rate:write`, `rules:read`,
+   `payment:approve`, `payment:export`, `payment:mark-paid`, `period:lock`,
+   `period:close`, `recon:read`, `recon:write`, `rate:read`, `rate:write`, `rules:read`,
   `rules:write`, `budget:read` and `budget:write`
 
 ## Install
@@ -89,14 +89,21 @@ The main window status bar shows the gateway, client app and signed-in user.
   opening balances and posting rules. Posting stays disabled until debits equal
   credits.
 - **Ledger & T-account** - posted lines with running balance and a two-column
-  T-account view.
+  T-account view; double-click a line to drill into its journal entry and source
+  document.
 - **Bills & Payables** - generate/approve supplier bills, payables and aging,
   supplier adjustments, and tea rate maintenance.
 - **Payroll** - calculate/approve runs, wages due and wage components.
 - **Payments** - batches, approvals, CSV bank files, payments and mark paid.
-- **Reports** - statement viewer and CSV/JSON/PDF/XLSX export requests.
-- **Periods & Reconciliation** - lock/close periods, bank accounts and bank
-  statement matching.
+- **Reports** - trial balance, P&L, balance sheet, cash flow, statement of
+  changes in equity, budget vs actual and supplier aging, with CSV/JSON/PDF/XLSX
+  exports and report-to-ledger-to-journal-to-source drill-down.
+- **Periods & Reconciliation** - lock/close periods, year-end close, bank
+  accounts and bank statement matching.
+
+The status bar subscribes to the `accounts.updates` realtime channel (WebSocket
+with catch-up polling fallback) and shows a "Data changed" indicator. The
+**Refresh data** button always refreshes the active view manually.
 
 Money is always sent as decimal strings. Money commands also send an
 `Idempotency-Key` header generated per request so retries cannot double-post.

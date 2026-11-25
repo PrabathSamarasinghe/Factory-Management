@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { createFileStorage } from '@galatura/platform-kit';
 import { PrismaService } from './prisma/prisma.service';
 import { EncryptionService } from './crypto/encryption.service';
 import { SupplierRegNoService } from './suppliers/supplier-reg-no.service';
@@ -10,6 +11,9 @@ import { DocumentsService } from './documents/documents.service';
 import { DocumentsController } from './documents/documents.controller';
 import { BarcodesService } from './barcodes/barcodes.service';
 import { BarcodesController } from './barcodes/barcodes.controller';
+import { FILE_STORAGE } from './storage';
+import { OutboxService } from './outbox/outbox.service';
+import { ConsentWithdrawalDispatcher } from './events/consent-withdrawal-dispatcher';
 
 @Module({
   imports: [],
@@ -22,6 +26,12 @@ import { BarcodesController } from './barcodes/barcodes.controller';
     BankAccountsService,
     DocumentsService,
     BarcodesService,
+    OutboxService,
+    ConsentWithdrawalDispatcher,
+    {
+      provide: FILE_STORAGE,
+      useFactory: () => createFileStorage(),
+    },
   ],
   exports: [
     PrismaService,
@@ -31,6 +41,8 @@ import { BarcodesController } from './barcodes/barcodes.controller';
     BankAccountsService,
     DocumentsService,
     BarcodesService,
+    OutboxService,
+    ConsentWithdrawalDispatcher,
   ],
 })
 export class AppModule {}

@@ -76,7 +76,12 @@ explicitly to override them.
 
 On startup the app tries to restore a stored session. If that fails it stays on
 the login screen. **Sign out** clears tokens and returns to the login screen.
-The main window status bar shows the gateway, client app and signed-in user.
+The main window status bar shows the gateway, client app and signed-in user,
+plus a language selector (English, Sinhala, Tamil) and a live data-changed
+indicator with a **Refresh** action for the current page. Realtime is skipped
+when the signed-in user has no subscribed channel permission. The session
+locks automatically after the configured idle period; see
+`docs/internationalization.md` for the setting names.
 
 ## Screens
 

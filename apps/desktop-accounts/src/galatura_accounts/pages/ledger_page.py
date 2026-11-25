@@ -25,8 +25,9 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from ..widgets.drilldown import DrilldownDialog
 from ..widgets.t_account_widget import TAccountWidget
-from .common import account_label, flatten_accounts, rows_of
+from .common import account_label, entry_id_of, flatten_accounts, rows_of
 
 
 class LedgerPage(QWidget):
@@ -85,8 +86,14 @@ class LedgerPage(QWidget):
         self.ledger_button.clicked.connect(self.load_ledger)
         self.t_account_button = primary_button("Load T-account")
         self.t_account_button.clicked.connect(self.load_t_account)
+        self.journal_button = ghost_button("Open journal entry")
+        self.journal_button.clicked.connect(self.open_journal_entry)
+        self.source_button = ghost_button("Open source document")
+        self.source_button.clicked.connect(self.open_source)
         filters_two.addWidget(self.ledger_button)
         filters_two.addWidget(self.t_account_button)
+        filters_two.addWidget(self.journal_button)
+        filters_two.addWidget(self.source_button)
         filters_two.addStretch(1)
         layout.addLayout(filters_two)
 
@@ -109,10 +116,13 @@ class LedgerPage(QWidget):
                 ("debit", "Debit", 130),
                 ("credit", "Credit", 130),
                 ("balance", "Balance", 140),
+                ("entryId", "Journal entry", 200),
             ]
         )
         for key in ("debit", "credit", "balance"):
             self.table.set_formatter(key, lambda value, _row: format_money(value))
+        self.table.itemSelectionChanged.connect(self._update_drill_actions)
+        self.table.doubleClicked.connect(self.open_journal_entry)
         ledger_layout.addWidget(self.table, 1)
         layout.addWidget(ledger_frame, 2)
 
@@ -128,6 +138,9 @@ class LedgerPage(QWidget):
         can_read = self.session.has_permission("ledger:read")
         self.ledger_button.setEnabled(can_read)
         self.t_account_button.setEnabled(can_read)
+        self.journal_button.setEnabled(can_read)
+        self.source_button.setEnabled(can_read)
+        self._update_drill_actions()
 
     def refresh(self) -> None:
         self.banner.clear()
@@ -184,6 +197,7 @@ class LedgerPage(QWidget):
             rows.append(
                 {
                     **line,
+                    "entryId": entry_id_of(line),
                     "date": format_date(line.get("date") or line.get("entryDate")),
                     "description": line.get("description") or line.get("memo") or "-",
                     "account": (
@@ -196,7 +210,50 @@ class LedgerPage(QWidget):
                 }
             )
         self.table.set_rows(rows)
+        self._update_drill_actions()
         self.banner.show_success(f"Loaded {len(rows)} ledger line(s).")
+
+    def _update_drill_actions(self) -> None:
+        selected = self.table.selected_row()
+        entry_id = entry_id_of(selected) if selected else ""
+        if not entry_id and selected:
+            entry_id = str(selected.get("entryId") or "")
+        can_read = self.session.has_permission("ledger:read")
+        self.journal_button.setEnabled(can_read and bool(entry_id))
+        self.source_button.setEnabled(can_read and bool(entry_id))
+
+    def _selected_entry_id(self) -> str:
+        selected = self.table.selected_row()
+        if not selected:
+            return ""
+        return entry_id_of(selected) or str(selected.get("entryId") or "")
+
+    def open_journal_entry(self) -> None:
+        if not self.session.has_permission("ledger:read"):
+            self.banner.show_error("Your role cannot read journal entries.")
+            return
+        entry_id = self._selected_entry_id()
+        if not entry_id:
+            self.banner.show_info("Select a ledger line with a journal entry ID.")
+            return
+        dialog = DrilldownDialog(self.session, self)
+        self._drilldown_dialog = dialog
+        dialog.show()
+        dialog.show_journal_entry(entry_id)
+
+    def open_source(self) -> None:
+        if not self.session.has_permission("ledger:read"):
+            self.banner.show_error("Your role cannot read source documents.")
+            return
+        entry_id = self._selected_entry_id()
+        if not entry_id:
+            self.banner.show_info("Select a ledger line with a journal entry ID.")
+            return
+        dialog = DrilldownDialog(self.session, self)
+        self._drilldown_dialog = dialog
+        dialog.entry_id = entry_id
+        dialog.show()
+        dialog.open_source()
 
     def load_t_account(self) -> None:
         if not self.session.has_permission("ledger:read"):

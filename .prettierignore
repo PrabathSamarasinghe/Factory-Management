@@ -5,4 +5,7 @@ coverage
 pnpm-lock.yaml
 **/*.py
 apps/desktop-*
+packages/api-client-ts/src/client.ts
+packages/api-client-ts/src/index.ts
+packages/api-client-ts/src/operations.ts
 .github/CODEOWNERS
