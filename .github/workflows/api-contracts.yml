@@ -30,7 +30,7 @@ jobs:
       - run: node tools/openapi/generate.mjs --root . --check
       - run: node tools/openapi/validate-specs.mjs --root .
       - run: node --test tools/openapi/lib.test.mjs
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: openapi-specs
