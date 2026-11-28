@@ -47,7 +47,7 @@ jobs:
       SHADOW_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/galatura_ci?schema=public
     steps:
       - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
         with:
           version: 12.21.0
           run_install: false
