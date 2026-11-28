@@ -27,6 +27,21 @@ from PySide6.QtWidgets import (
 )
 
 
+def _rows(value: Any, *keys: str) -> list[dict[str, Any]]:
+    if isinstance(value, list):
+        return [row for row in value if isinstance(row, dict)]
+    if isinstance(value, dict):
+        for key in (*keys, "rows", "data", "items"):
+            candidate = value.get(key)
+            if isinstance(candidate, list):
+                return [row for row in candidate if isinstance(row, dict)]
+            if isinstance(candidate, dict):
+                nested = _rows(candidate, *keys)
+                if nested:
+                    return nested
+    return []
+
+
 class SmsPage(QWidget):
     def __init__(self, session: SessionManager):
         super().__init__()
@@ -161,7 +176,7 @@ class SmsPage(QWidget):
         self._loading = True
         run_async(self._load, self._apply, self._on_error)
 
-    def _load(self) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    def _load(self) -> tuple[Any, Any]:
         messages = self.session.notification.list_messages(
             status=self.status_combo.currentData()
         )
@@ -170,16 +185,18 @@ class SmsPage(QWidget):
             if self.session.has_permission("sms:review")
             else []
         )
-        return messages or [], dead_letters or []
+        return messages or {}, dead_letters or []
 
-    def _apply(
-        self, result: tuple[list[dict[str, Any]], list[dict[str, Any]]]
-    ) -> None:
+    def _apply(self, result: tuple[Any, Any]) -> None:
         self._loading = False
         messages, dead_letters = result
-        self.table.set_rows(messages)
-        self.dead_letter_table.set_rows(dead_letters)
-        self.banner.show_info(f"{len(messages)} SMS record(s); {len(dead_letters)} dead letter(s).")
+        message_rows = _rows(messages)
+        dead_letter_rows = _rows(dead_letters)
+        self.table.set_rows(message_rows)
+        self.dead_letter_table.set_rows(dead_letter_rows)
+        self.banner.show_info(
+            f"{len(message_rows)} SMS record(s); {len(dead_letter_rows)} dead letter(s)."
+        )
         self._update_actions()
 
     def _update_actions(self) -> None:

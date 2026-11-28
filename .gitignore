@@ -22,3 +22,13 @@ venv/
 .mypy_cache/
 .ruff_cache/
 *.egg-info/
+
+LOCAL_STARTUP.md
+
+
+# Android generated build files
+apps/*/android/.gradle/
+apps/*/android/build/
+apps/*/android/app/build/
+apps/*/android/local.properties
+apps/*/android/captures/

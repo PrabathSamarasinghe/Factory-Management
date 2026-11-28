@@ -5,7 +5,7 @@ import { createProxyMiddleware } from 'http-proxy-middleware';
 export interface RouteTarget {
   prefix: string;
   target: string;
-  rewritePrefix?: boolean;
+  pathRewrite?: (path: string) => string;
   ws?: boolean;
 }
 
@@ -18,64 +18,53 @@ export class ProxyService {
       {
         prefix: '/api/v1/identity',
         target: process.env.IDENTITY_SERVICE_URL || 'http://localhost:3001',
-        rewritePrefix: false,
       },
       {
         prefix: '/api/v1/people',
         target: process.env.PEOPLE_SERVICE_URL || 'http://localhost:3002',
-        rewritePrefix: false,
       },
       {
         prefix: '/api/v1/attendance',
         target: process.env.ATTENDANCE_SERVICE_URL || 'http://localhost:3003',
-        rewritePrefix: false,
       },
       {
         prefix: '/api/v1/fleet',
         target: process.env.FLEET_SERVICE_URL || 'http://localhost:3004',
-        rewritePrefix: false,
       },
       {
         prefix: '/api/v1/collection',
         target: process.env.COLLECTION_SERVICE_URL || 'http://localhost:3005',
-        rewritePrefix: false,
       },
       {
         prefix: '/api/v1/notification',
         target: process.env.NOTIFICATION_SERVICE_URL || 'http://localhost:3006',
-        rewritePrefix: false,
       },
       {
         prefix: '/api/v1/realtime',
         target: process.env.REALTIME_SERVICE_URL || 'http://localhost:3007',
-        rewritePrefix: false,
         ws: true,
       },
       {
         prefix: '/ws',
         target: process.env.REALTIME_SERVICE_URL || 'http://localhost:3007',
-        rewritePrefix: false,
         ws: true,
       },
       {
         prefix: '/api/v1/accounts',
         target: process.env.ACCOUNTS_SERVICE_URL || 'http://localhost:3008',
-        rewritePrefix: false,
       },
       {
         prefix: '/api/v1/inventory',
         target: process.env.INVENTORY_SERVICE_URL || 'http://localhost:3009',
-        rewritePrefix: false,
       },
       {
         prefix: '/api/v1/reporting',
         target: process.env.REPORTING_SERVICE_URL || 'http://localhost:3010',
-        rewritePrefix: false,
       },
       {
         prefix: '/api/v1/monitor',
         target: process.env.REPORTING_SERVICE_URL || 'http://localhost:3010',
-        rewritePrefix: false,
+        pathRewrite: (path) => `/monitor${path}`,
       },
     ];
   }
@@ -85,6 +74,7 @@ export class ProxyService {
       target: target.target,
       changeOrigin: true,
       ws: target.ws ?? false,
+      pathRewrite: target.pathRewrite,
       on: {
         error: (err: Error, _req: any, res: any) => {
           this.logger.error(`Proxy error for ${target.prefix}: ${err.message}`);

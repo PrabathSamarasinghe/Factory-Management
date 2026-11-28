@@ -17,6 +17,7 @@
     "format:check": "prettier --check .",
     "prisma:check": "node tools/prisma/check-migrations.mjs",
     "prisma:check:static": "node tools/prisma/check-migrations.mjs --static",
+    "prisma:generate": "turbo run prisma:generate",
     "test:tools": "node --test tools/benchmark/lib.test.mjs tools/clientgen/lib.test.mjs tools/data-migration/lib.test.mjs tools/load/lib.test.mjs tools/openapi/lib.test.mjs tools/recovery/verify-backup-manifest.test.mjs tools/security/check-security.test.mjs",
     "openapi:generate": "node tools/openapi/generate.mjs --root .",
     "openapi:check": "node tools/openapi/generate.mjs --root . --check && node tools/openapi/validate-specs.mjs --root .",
@@ -30,7 +31,9 @@
     "load:validate": "node tools/load/load-test.mjs --scenario tools/load/scenarios/weighing-peak.json --dry-run && node tools/load/load-test.mjs --scenario tools/load/scenarios/sync-burst.json --dry-run",
     "migration:validate": "node tools/data-migration/migrate.mjs --manifest tools/data-migration/migration.example.json --validate",
     "migration:dry-run": "node tools/data-migration/migrate.mjs --manifest tools/data-migration/migration.example.json --dry-run",
-    "dr:check": "node tools/recovery/verify-backup-manifest.mjs --strict"
+    "dr:check": "node tools/recovery/verify-backup-manifest.mjs --strict",
+    "deploy:render": "node tools/render/deploy.mjs",
+    "deploy:render:apply": "node tools/render/deploy.mjs --apply"
   },
   "devDependencies": {
     "prettier": "^3.10.1",

@@ -8,44 +8,44 @@ export class MonitorController {
   constructor(private readonly monitor: MonitorService) {}
 
   @Get('today')
-  today(@Req() req: Request) {
+  async today(@Req() req: Request) {
     assertPermission(req, 'monitor:read');
-    return { data: this.monitor.today() };
+    return { data: await this.monitor.today() };
   }
 
   @Get('trips')
-  trips(@Req() req: Request) {
+  async trips(@Req() req: Request) {
     assertPermission(req, 'monitor:read');
-    return { data: this.monitor.trips() };
+    return { data: await this.monitor.trips() };
   }
 
   @Get('attendance')
-  attendance(@Req() req: Request, @Query('date') date?: string) {
+  async attendance(@Req() req: Request, @Query('date') date?: string) {
     assertPermission(req, 'monitor:read');
-    return { data: this.monitor.attendance(date) };
+    return { data: await this.monitor.attendance(date) };
   }
 
   @Get('collections')
-  collections(@Req() req: Request, @Query('date') date?: string) {
+  async collections(@Req() req: Request, @Query('date') date?: string) {
     assertPermission(req, 'monitor:read');
-    return { data: this.monitor.collections(date) };
+    return { data: await this.monitor.collections(date) };
   }
 
   @Get('finance')
-  finance(@Req() req: Request) {
+  async finance(@Req() req: Request) {
     assertPermission(req, 'monitor:finance');
-    return { data: this.monitor.finance() };
+    return { data: await this.monitor.finance() };
   }
 
   @Get('inventory')
-  inventory(@Req() req: Request) {
+  async inventory(@Req() req: Request) {
     assertPermission(req, 'monitor:read');
-    return { data: this.monitor.inventory() };
+    return { data: await this.monitor.inventory() };
   }
 
   @Get('rebuild')
-  rebuild(@Req() req: Request) {
+  async rebuild(@Req() req: Request) {
     assertPermission(req, 'monitor:read');
-    return { data: this.monitor.rebuild() };
+    return { data: await this.monitor.rebuild() };
   }
 }

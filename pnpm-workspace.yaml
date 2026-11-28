@@ -6,3 +6,7 @@ packages:
 allowBuilds:
   '@prisma/engines': true
   prisma: true
+
+patchedDependencies:
+  react-native-nitro-image@0.15.2: patches/react-native-nitro-image@0.15.2.patch
+  react-native-vision-camera@5.2.4: patches/react-native-vision-camera@5.2.4.patch

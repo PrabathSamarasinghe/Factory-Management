@@ -51,7 +51,7 @@ export class MasterDataService {
   }
 
   private peopleUrl(): string {
-    return (process.env.PEOPLE_SERVICE_URL || 'http://localhost:3001').replace(/\/$/, '');
+    return (process.env.PEOPLE_SERVICE_URL || 'http://localhost:3002').replace(/\/$/, '');
   }
 
   private fleetUrl(): string {

@@ -163,12 +163,40 @@ export async function getDataEncryptionKey(): Promise<string> {
   return created;
 }
 
+interface EncryptedPayload {
+  iv: string;
+  data: string;
+}
+
+function encryptionKey(key: string): CryptoJS.lib.WordArray {
+  return CryptoJS.SHA256(key);
+}
+
+function encryptionIv(plainText: string, key: string): CryptoJS.lib.WordArray {
+  return CryptoJS.enc.Hex.parse(
+    CryptoJS.SHA256(`${key}:${plainText}`).toString().slice(0, 32),
+  );
+}
+
 export function encryptRecords(rows: unknown, key: string): string {
-  return CryptoJS.AES.encrypt(JSON.stringify(rows), key).toString();
+  const plainText = JSON.stringify(rows);
+  const encrypted = CryptoJS.AES.encrypt(plainText, encryptionKey(key), {
+    iv: encryptionIv(plainText, key),
+  });
+  const payload: EncryptedPayload = {
+    iv: encrypted.iv.toString(CryptoJS.enc.Hex),
+    data: encrypted.ciphertext.toString(CryptoJS.enc.Base64),
+  };
+  return JSON.stringify(payload);
 }
 
 export function decryptRecords<T>(cipherText: string, key: string): T {
-  const bytes = CryptoJS.AES.decrypt(cipherText, key);
+  const payload = JSON.parse(cipherText) as EncryptedPayload;
+  const bytes = CryptoJS.AES.decrypt(
+    { ciphertext: CryptoJS.enc.Base64.parse(payload.data) } as any,
+    encryptionKey(key),
+    { iv: CryptoJS.enc.Hex.parse(payload.iv) },
+  );
   const plainText = bytes.toString(CryptoJS.enc.Utf8);
   if (!plainText) {
     throw new Error('Encrypted local data could not be decrypted.');

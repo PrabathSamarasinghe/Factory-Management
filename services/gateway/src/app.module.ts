@@ -1,10 +1,4 @@
-import {
-  Controller,
-  Get,
-  MiddlewareConsumer,
-  Module,
-  NestModule,
-} from '@nestjs/common';
+import { Controller, Get, Module } from '@nestjs/common';
 import { RateLimiterService } from './middleware/rate-limiter.service';
 import { JwtVerifierService } from './middleware/jwt-verifier.service';
 import { RoutePolicyService } from './middleware/route-policy.service';
@@ -26,16 +20,14 @@ export class HealthController {
     JwtVerifierService,
     RoutePolicyService,
     ProxyService,
+    GatewayMiddleware,
   ],
   exports: [
     RateLimiterService,
     JwtVerifierService,
     RoutePolicyService,
     ProxyService,
+    GatewayMiddleware,
   ],
 })
-export class AppModule implements NestModule {
-  configure(consumer: MiddlewareConsumer) {
-    consumer.apply(GatewayMiddleware).forRoutes('*');
-  }
-}
+export class AppModule {}

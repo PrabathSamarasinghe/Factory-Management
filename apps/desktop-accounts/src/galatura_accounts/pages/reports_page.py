@@ -152,18 +152,18 @@ class ReportsPage(QWidget):
         if self.session.has_permission("budget:read"):
             run_async(self._load_budgets, self._apply_budgets, self._on_error)
 
-    def _load_budgets(self) -> list[dict[str, Any]]:
+    def _load_budgets(self) -> Any:
         try:
-            return self.session.accounts.list_budgets() or []
+            return self.session.accounts.list_budgets() or {}
         except ApiError:
-            return []
+            return {}
 
-    def _apply_budgets(self, budgets: list[dict[str, Any]]) -> None:
+    def _apply_budgets(self, budgets: Any) -> None:
         selected = self.budget_combo.currentData()
         self.budget_combo.blockSignals(True)
         self.budget_combo.clear()
         self.budget_combo.addItem("Select budget", None)
-        for budget in budgets:
+        for budget in rows_of(budgets, "budgets"):
             self.budget_combo.addItem(
                 str(budget.get("name") or budget.get("code") or budget.get("id") or "-"),
                 budget.get("id"),

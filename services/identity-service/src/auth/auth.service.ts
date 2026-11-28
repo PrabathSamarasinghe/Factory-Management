@@ -196,7 +196,7 @@ export class AuthService {
     }
 
     const userId = payload.sub;
-    const user = await this.prisma.user.findUnique({
+    const user = await this.prisma.user.findFirst({
       where: { id: userId, deletedAt: null },
     });
 
@@ -333,7 +333,7 @@ export class AuthService {
   }
 
   async changePassword(userId: string, input: { oldPassword: string; newPassword: string }): Promise<void> {
-    const user = await this.prisma.user.findUnique({ where: { id: userId, deletedAt: null } });
+    const user = await this.prisma.user.findFirst({ where: { id: userId, deletedAt: null } });
     if (!user) throw new NotFoundError('User not found.');
 
     const valid = await verifyPassword(input.oldPassword, user.passwordHash);
@@ -358,7 +358,7 @@ export class AuthService {
   }
 
   async setup2fa(userId: string): Promise<{ secret: string; otpAuthUrl: string }> {
-    const user = await this.prisma.user.findUnique({ where: { id: userId, deletedAt: null } });
+    const user = await this.prisma.user.findFirst({ where: { id: userId, deletedAt: null } });
     if (!user) throw new NotFoundError('User not found.');
 
     const secret = generateTotpSecret();
@@ -374,7 +374,7 @@ export class AuthService {
   }
 
   async enable2fa(userId: string, code: string): Promise<void> {
-    const user = await this.prisma.user.findUnique({ where: { id: userId, deletedAt: null } });
+    const user = await this.prisma.user.findFirst({ where: { id: userId, deletedAt: null } });
     if (!user || !user.totpSecretEnc) {
       throw new NotFoundError('2FA setup has not been initiated.');
     }
@@ -401,11 +401,33 @@ export class AuthService {
     const familyId = uuidv7();
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
 
+    const uuidPattern = /^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/i;
+    let linkedDeviceId = deviceId && uuidPattern.test(deviceId) ? deviceId : null;
+    if (linkedDeviceId) {
+      const existingDevice = await this.prisma.device.findUnique({
+        where: { id: linkedDeviceId },
+      });
+      if (existingDevice && existingDevice.userId !== userId) {
+        linkedDeviceId = null;
+      } else {
+        await this.prisma.device.upsert({
+          where: { id: linkedDeviceId },
+          create: {
+            id: linkedDeviceId,
+            userId,
+            platform: userAgent ?? 'unknown',
+            lastSeenAt: new Date(),
+          },
+          update: { lastSeenAt: new Date() },
+        });
+      }
+    }
+
     await this.prisma.session.create({
       data: {
         id: uuidv7(),
         userId,
-        deviceId: deviceId ?? null,
+        deviceId: linkedDeviceId,
         refreshTokenHash: tokenHash,
         familyId,
         expiresAt,

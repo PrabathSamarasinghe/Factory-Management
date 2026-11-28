@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import {
   DependencyUnavailableError,
   OutboxPublisher,
@@ -8,6 +8,7 @@ import {
 import { OutboxService } from '../outbox/outbox.service';
 
 export const CONSENT_WITHDRAWAL_PATH = '/internal/consent-withdrawals';
+export const CONSENT_WITHDRAWAL_BUS = Symbol('CONSENT_WITHDRAWAL_BUS');
 
 export class HttpConsentWithdrawalBus implements EventBus {
   constructor(
@@ -49,7 +50,7 @@ export class HttpConsentWithdrawalBus implements EventBus {
 export class ConsentWithdrawalDispatcher {
   constructor(
     private readonly outbox: OutboxService,
-    private readonly bus: EventBus = new HttpConsentWithdrawalBus(),
+    @Inject(CONSENT_WITHDRAWAL_BUS) private readonly bus: EventBus = new HttpConsentWithdrawalBus(),
   ) {}
 
   async publishPending(): Promise<{ published: number; failed: number }> {

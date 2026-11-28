@@ -92,7 +92,7 @@ export class RolesService {
   }
 
   async assignUserRoles(userId: string, roleIds: string[], grantedBy?: string) {
-    const user = await this.prisma.user.findUnique({ where: { id: userId, deletedAt: null } });
+    const user = await this.prisma.user.findFirst({ where: { id: userId, deletedAt: null } });
     if (!user) throw new NotFoundError(`User ${userId} not found.`);
 
     await this.prisma.$transaction(async (tx) => {

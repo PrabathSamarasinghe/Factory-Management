@@ -112,7 +112,7 @@ export class UsersService {
   }
 
   async getUser(id: string) {
-    const user = await this.prisma.user.findUnique({
+    const user = await this.prisma.user.findFirst({
       where: { id, deletedAt: null },
       select: {
         id: true,

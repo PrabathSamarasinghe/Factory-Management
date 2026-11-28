@@ -718,10 +718,11 @@ describe('reporting-service monitor APIs', () => {
     });
   });
 
-  it('denies finance access without monitor:finance', () => {
+  it('denies finance access without monitor:finance', async () => {
     const { monitorController } = buildServices();
-    expect(() => monitorController.finance(monitorPermission)).toThrow(ForbiddenError);
-    expect(() => monitorController.finance(monitorPermission)).toThrow(/monitor:finance/);
+    const denied = monitorController.finance(monitorPermission);
+    await expect(denied).rejects.toBeInstanceOf(ForbiddenError);
+    await expect(denied).rejects.toThrow(/monitor:finance/);
   });
 
   it('returns finance snapshot values and netCash', async () => {
@@ -789,17 +790,25 @@ describe('reporting-service monitor APIs', () => {
   it('rejects malformed date query parameters', async () => {
     const { monitorController } = buildServices();
     await expect(
-      monitorController.attendance(monitorPermission, '24-11-2026').data,
+      monitorController.attendance(monitorPermission, '24-11-2026'),
     ).rejects.toThrow(/date must be YYYY-MM-DD/);
   });
 
-  it('enforces monitor:read on every read endpoint', () => {
+  it('enforces monitor:read on every read endpoint', async () => {
     const { monitorController } = buildServices();
-    expect(() => monitorController.today(request())).toThrow(/monitor:read/);
-    expect(() => monitorController.trips(request())).toThrow(/monitor:read/);
-    expect(() => monitorController.attendance(request())).toThrow(/monitor:read/);
-    expect(() => monitorController.collections(request())).toThrow(/monitor:read/);
-    expect(() => monitorController.inventory(request())).toThrow(/monitor:read/);
-    expect(() => monitorController.rebuild(request())).toThrow(/monitor:read/);
+    await expect(monitorController.today(request())).rejects.toThrow(/monitor:read/);
+    await expect(monitorController.trips(request())).rejects.toThrow(/monitor:read/);
+    await expect(monitorController.attendance(request())).rejects.toThrow(
+      /monitor:read/,
+    );
+    await expect(monitorController.collections(request())).rejects.toThrow(
+      /monitor:read/,
+    );
+    await expect(monitorController.inventory(request())).rejects.toThrow(
+      /monitor:read/,
+    );
+    await expect(monitorController.rebuild(request())).rejects.toThrow(
+      /monitor:read/,
+    );
   });
 });

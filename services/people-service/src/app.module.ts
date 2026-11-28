@@ -13,7 +13,11 @@ import { BarcodesService } from './barcodes/barcodes.service';
 import { BarcodesController } from './barcodes/barcodes.controller';
 import { FILE_STORAGE } from './storage';
 import { OutboxService } from './outbox/outbox.service';
-import { ConsentWithdrawalDispatcher } from './events/consent-withdrawal-dispatcher';
+import {
+  CONSENT_WITHDRAWAL_BUS,
+  ConsentWithdrawalDispatcher,
+  HttpConsentWithdrawalBus,
+} from './events/consent-withdrawal-dispatcher';
 
 @Module({
   imports: [],
@@ -28,6 +32,10 @@ import { ConsentWithdrawalDispatcher } from './events/consent-withdrawal-dispatc
     BarcodesService,
     OutboxService,
     ConsentWithdrawalDispatcher,
+    {
+      provide: CONSENT_WITHDRAWAL_BUS,
+      useFactory: () => new HttpConsentWithdrawalBus(),
+    },
     {
       provide: FILE_STORAGE,
       useFactory: () => createFileStorage(),

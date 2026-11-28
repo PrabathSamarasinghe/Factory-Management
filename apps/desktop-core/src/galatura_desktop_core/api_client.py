@@ -28,6 +28,12 @@ _DEFAULT_TIMEOUT = 20.0
 _REFRESH_SKEW_SECONDS = 30.0
 
 
+def unwrap_data(value: Any) -> Any:
+    if isinstance(value, dict) and set(value) == {"data"}:
+        return value["data"]
+    return value
+
+
 def decode_jwt_payload(token: str) -> dict[str, Any]:
     """Decode a JWT payload without verifying it.
 
@@ -227,7 +233,7 @@ class ApiClient:
 
         if raw_response:
             return response.content
-        return self._json(response)
+        return unwrap_data(self._json(response))
 
     def _json(self, response: requests.Response) -> Any:
         if response.status_code == 204 or not response.content:

@@ -34,7 +34,7 @@ export class PermissionsService {
       }
     }
 
-    const user = await this.prisma.user.findUnique({
+    const user = await this.prisma.user.findFirst({
       where: { id: userId, deletedAt: null },
       include: {
         roles: {
@@ -89,7 +89,7 @@ export class PermissionsService {
   }
 
   async getUserProfile(userId: string) {
-    const user = await this.prisma.user.findUnique({
+    const user = await this.prisma.user.findFirst({
       where: { id: userId, deletedAt: null },
       select: {
         id: true,

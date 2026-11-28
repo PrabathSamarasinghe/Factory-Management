@@ -31,6 +31,10 @@ describe('AuthService (Login, Lockout, Rotation & Replay Detection)', () => {
         update: async (args: any) => args.data,
         updateMany: async () => {},
       },
+      device: {
+        findUnique: async () => null,
+        upsert: async (args: any) => args.data,
+      },
       authAudit: {
         create: async () => {},
       },
@@ -128,6 +132,44 @@ describe('AuthService (Login, Lockout, Rotation & Replay Detection)', () => {
     expect(result.tokens?.accessToken).toBeDefined();
     expect(result.tokens?.refreshToken).toBeDefined();
     expect(result.tokens?.expiresIn).toBe(900);
+  });
+
+  it('registers an unknown device before creating a login session', async () => {
+    const passwordHash = await hashPassword('ValidPassword@123');
+    const userId = uuidv7();
+    const deviceId = uuidv7();
+    const user = {
+      id: userId,
+      username: 'mobileuser',
+      passwordHash,
+      status: 'ACTIVE',
+      failedAttempts: 0,
+      lockedUntil: null,
+      roles: [],
+      overrides: [],
+      totpEnabled: false,
+      totpSecretEnc: null,
+      mustChangePassword: false,
+    };
+
+    mockPrisma.user.findFirst = async () => ({ ...user });
+    mockPrisma.user.findUnique = async () => ({ ...user });
+
+    let deviceUpsertArgs: any;
+    mockPrisma.device.upsert = async (args: any) => {
+      deviceUpsertArgs = args;
+      return args.data;
+    };
+
+    const result = await authService.login({
+      username: 'mobileuser',
+      password: 'ValidPassword@123',
+      deviceId,
+    });
+
+    expect(result.tokens).toBeDefined();
+    expect(deviceUpsertArgs.where.id).toBe(deviceId);
+    expect(deviceUpsertArgs.create.userId).toBe(userId);
   });
 
   it('detects refresh token replay attack and revokes all sessions in family', async () => {

@@ -1,0 +1,21 @@
+diff --git a/android/build.gradle b/android/build.gradle
+index 8f83cbe363689159484e2a4659e873e7d2057852..a4918ab676a05b265eb1deb63bb136ebcfd05c82 100644
+--- a/android/build.gradle
++++ b/android/build.gradle
+@@ -49,7 +49,7 @@ android {
+     externalNativeBuild {
+       cmake {
+         cppFlags "-frtti -fexceptions -Wall -Wextra -fstack-protector-all"
+-        arguments "-DANDROID_STL=c++_shared", "-DANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES=ON"
++        arguments "-DANDROID_STL=c++_shared", "-DANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES=ON", "-DCMAKE_OBJECT_PATH_MAX=4096"
+         abiFilters (*reactNativeArchitectures())
+ 
+         buildTypes {
+@@ -67,6 +67,7 @@ android {
+   externalNativeBuild {
+     cmake {
+       path "CMakeLists.txt"
++      buildStagingDirectory "${System.getProperty('java.io.tmpdir')}/gci"
+     }
+   }
+ 
