@@ -44,7 +44,7 @@ jobs:
           --health-retries 10
     env:
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/galatura_ci?schema=public
-      SHADOW_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/galatura_ci?schema=public
+      SHADOW_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/galatura_shadow?schema=public
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -55,6 +55,11 @@ jobs:
         with:
           node-version: 24
           cache: pnpm
+      - name: Create shadow database
+        run: |
+          docker exec ${{ job.services.postgres.id }} psql \
+            -U postgres -d postgres \
+            -c "CREATE DATABASE galatura_shadow;"
       - run: pnpm install --frozen-lockfile
       - run: pnpm prisma:check:static
       - run: pnpm prisma:check
