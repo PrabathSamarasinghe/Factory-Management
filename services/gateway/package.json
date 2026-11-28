@@ -12,7 +12,7 @@
   "dependencies": {
     "@galatura/platform-kit": "workspace:*",
     "@nestjs/common": "11.2.10",
-    "@nestjs/core": "11.2.10",
+    "@nestjs/core": "12.6.0",
     "@nestjs/platform-express": "11.2.10",
     "http-proxy-middleware": "^3.0.3",
     "ioredis": "^5.6.1",
