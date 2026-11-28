@@ -203,7 +203,9 @@ if (apply && missingRootKeys.length > 0) {
   throw new Error(`Missing required env keys: ${missingRootKeys.join(', ')}`);
 }
 if (apply && !config.apiKey) {
-  throw new Error('Missing RENDER_API_KEY');
+  throw new Error(
+    'Missing RENDER_API_KEY. Set it as an environment variable or GitHub Actions secret.',
+  );
 }
 
 function secret(key) {
