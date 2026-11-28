@@ -3,6 +3,9 @@ packages:
   - services/*
   - apps/mobile-*
 
+overrides:
+  effect: 3.22.1
+
 allowBuilds:
   '@prisma/engines': true
   prisma: true

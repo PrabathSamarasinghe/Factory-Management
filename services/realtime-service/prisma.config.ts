@@ -8,5 +8,6 @@ export default defineConfig({
       process.env.DIRECT_URL ||
       process.env.DATABASE_URL ||
       'postgresql://realtime_service:password@localhost:5432/postgres?schema=realtime_service',
+    shadowDatabaseUrl: process.env.SHADOW_DATABASE_URL,
   },
 });

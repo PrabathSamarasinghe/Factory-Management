@@ -8,5 +8,6 @@ export default defineConfig({
       process.env.DIRECT_URL ||
       process.env.DATABASE_URL ||
       'postgresql://fleet_service:password@localhost:5432/postgres?schema=fleet',
+    shadowDatabaseUrl: process.env.SHADOW_DATABASE_URL,
   },
 });
